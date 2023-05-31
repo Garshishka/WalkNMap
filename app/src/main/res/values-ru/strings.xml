@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MapMarkers</string>
+    <string name="no_user_location_error">Ваша локация еще не определена</string>
+    <string name="retry">Повторить</string>
+    <string name="need_geolocation">Необходимо разрешение на геолокацию чтобы использовать эту функцию</string>
+    <string name="permission">Разрешение</string>
+    <string name="new_place">Новое место</string>
+    <string name="dialog_new_place">Задайте имя для нового места</string>
+    <string name="add_place">Добавить</string>
+    <string name="back">Назад</string>
+    <string name="dialog_rename_place">Задайте новое имя для этого места</string>
+    <string name="rename_place">Переименовать</string>
+    <string name="dialog_delete_place">Уверены что хотите удалить это место?</string>
+    <string name="delete_place">Удалить</string>
+    <string name="dialog_mark_interaction">Вы хотите переименовать или удалить это место?</string>
+</resources>

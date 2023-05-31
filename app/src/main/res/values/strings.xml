@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">MapMarkers</string>
+    <string name="no_user_location_error">Can\'t find your location yet</string>
+    <string name="retry">Retry</string>
+    <string name="need_geolocation">You need geolocation permission to use this feature</string>
+    <string name="permission">Permission</string>
+    <string name="new_place">New place</string>
+    <string name="dialog_new_place">Set the name for new place</string>
+    <string name="dialog_rename_place">Set the new name for this place</string>
+    <string name="dialog_delete_place">Are you sure you want to delete this place?</string>
+    <string name="dialog_mark_interaction">Do you want to delete or rename this place?</string>
+    <string name="add_place">Add</string>
+    <string name="rename_place">Rename</string>
+    <string name="delete_place">Delete</string>
+    <string name="back">Back</string>
+</resources>
