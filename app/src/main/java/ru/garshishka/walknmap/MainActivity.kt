@@ -32,7 +32,6 @@ import ru.garshishka.walknmap.viewmodel.MainViewModel
 import ru.garshishka.walknmap.viewmodel.ViewModelFactory
 import kotlin.math.round
 
-
 class MainActivity : AppCompatActivity() {
     //Dependency part
     private val container = DependencyContainer.getInstance()
@@ -108,6 +107,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var userLocationLayer: UserLocationLayer
     private val cameraListener = MapCameraListener(onMapInteractionListener)
     private val mapInputListener = MapInputListener(onMapInteractionListener)
+    private val userObjectListener = MapUserLocationListener()
     private var markerTapListener = PlaceTapListener(onMapInteractionListener)
     private var firstTimePlacingMarkers = true
 
@@ -129,6 +129,8 @@ class MainActivity : AppCompatActivity() {
         userLocationLayer = mapKit.createUserLocationLayer(binding.mapView.mapWindow)
         userLocationLayer.isVisible = true
         userLocationLayer.isHeadingEnabled = false
+
+        userLocationLayer.setObjectListener(userObjectListener)
 
         binding.mapView.map.apply {
             addCameraListener(cameraListener)
@@ -290,9 +292,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun roundCoordinates(point: Point): Point{
-        val newLat = round(point.latitude*4000) /4000
-        val newLon = round(point.longitude*4000)/4000
+    private fun roundCoordinates(point: Point): Point {
+        val newLat = round(point.latitude * 4000) / 4000
+        val newLon = round(point.longitude * 4000) / 4000
         return Point(newLat, newLon)
     }
 
