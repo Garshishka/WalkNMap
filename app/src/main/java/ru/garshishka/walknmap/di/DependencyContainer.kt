@@ -1,7 +1,9 @@
 package ru.garshishka.walknmap.di
 
 import android.content.Context
-
+import androidx.room.Room
+import ru.garshishka.walknmap.data.AppDb
+import ru.garshishka.walknmap.data.PointRepository
 
 class DependencyContainer private constructor(context: Context) {
 
@@ -18,14 +20,13 @@ class DependencyContainer private constructor(context: Context) {
         }
     }
 
-   /* private val appDb =
+    private val appDb =
         Room.databaseBuilder(context, AppDb::class.java, "app.db")
             .allowMainThreadQueries()
             .fallbackToDestructiveMigration()
             .build()
 
-    private val placesDao = appDb.placesDao()
+    private val gridPointDao = appDb.gridPointDao()
 
-    val repository: PlacesRepository = PlacesRepository(placesDao)
-    */
+    val repository: PointRepository = PointRepository(gridPointDao)
 }

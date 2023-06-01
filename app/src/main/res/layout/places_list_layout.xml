@@ -12,29 +12,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/baseline_location_48"
-        app:layout_constraintEnd_toStartOf="@id/place_name"
+        app:layout_constraintEnd_toStartOf="@+id/place_coords"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
-
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/place_name"
-        tools:text="Place name"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@id/place_coords"
-        app:layout_constraintStart_toEndOf="@id/place_pin"
-        app:layout_constraintTop_toTopOf="@id/place_pin" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/place_coords"
         tools:text="31231313132 + 21323"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/gray"
         app:layout_constraintBottom_toBottomOf="@id/place_pin"
         app:layout_constraintStart_toEndOf="@id/place_pin"
-        app:layout_constraintTop_toBottomOf="@id/place_name" />
+        app:layout_constraintTop_toTopOf="@id/place_pin" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/edit_button"
