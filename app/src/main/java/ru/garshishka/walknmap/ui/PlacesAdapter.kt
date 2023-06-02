@@ -32,15 +32,12 @@ class PlacesViewHolder(
     RecyclerView.ViewHolder(binding.root) {
     fun bind(place: GridPoint) {
         binding.apply {
-            val lat = place.point.latitude.toString().take(10) + "..."
-            val long = place.point.longitude.toString().take(10) + "..."
+            val lat = place.point.latitude.toString()
+            val long = place.point.longitude.toString()
             placeCoords.text = "$lat | $long"
 
             placeCard.setOnClickListener {
                 onInteractionListener.onPlaceClick(place)
-            }
-            editButton.setOnClickListener {
-                onInteractionListener.onEditClick(place)
             }
             deleteButton.setOnClickListener {
                 onInteractionListener.onDeleteClick(place)

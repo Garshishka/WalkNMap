@@ -17,6 +17,7 @@ import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.LinearRing
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.geometry.Polygon
+import com.yandex.mapkit.location.FilteringMode
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.map.PlacemarkMapObject
@@ -60,10 +61,6 @@ class MainActivity : AppCompatActivity() {
             moveMap(place.point)
         }
 
-        override fun onEditClick(place: GridPoint) {
-            //TODO probably remove later
-        }
-
         override fun onDeleteClick(place: GridPoint) {
             deletePlace(place)
         }
@@ -75,7 +72,6 @@ class MainActivity : AppCompatActivity() {
         }*/ //TODO Delete in the future
 
         override fun userMoved() {
-            println("User moved")
             addUserLocation()
         }
 
@@ -111,12 +107,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     //Map part
-    private var userLocation = Point(0.0, 0.0)
     private lateinit var mapObjectCollection: MapObjectCollection
     private lateinit var userLocationLayer: UserLocationLayer
+    private var locationManager: com.yandex.mapkit.location.LocationManager? = null
     private val cameraListener = MapCameraListener(onMapInteractionListener)
     private val mapInputListener = MapInputListener(onMapInteractionListener)
-    private val userObjectListener = MapUserLocationListener(onMapInteractionListener)
+    private val userObjectListener = MapUserLocationListener()
+    private val locationListener = LocationChangeListener(onMapInteractionListener)
     private var markerTapListener = PlaceTapListener(onMapInteractionListener)
     private var firstTimePlacingMarkers = true
 
@@ -138,6 +135,8 @@ class MainActivity : AppCompatActivity() {
         userLocationLayer = mapKit.createUserLocationLayer(binding.mapView.mapWindow)
         userLocationLayer.isVisible = true
         userLocationLayer.isHeadingEnabled = false
+
+        locationManager = mapKit.createLocationManager()
 
         userLocationLayer.setObjectListener(userObjectListener)
 
@@ -290,10 +289,9 @@ class MainActivity : AppCompatActivity() {
         mapObjectCollection.traverse(RemoveMapObjectByPoint(onMapInteractionListener, point))
     }
 
-    private fun cameraToUserPosition(zoom: Float = 16f) {
+    private fun cameraToUserPosition(zoom: Float = 17f) {
         if (userLocationLayer.cameraPosition() != null) {
-            userLocation = userLocationLayer.cameraPosition()!!.target
-            moveMap(userLocation, zoom)
+            moveMap(userLocationLayer.cameraPosition()!!.target, zoom)
         } else {
             Snackbar.make(
                 binding.mapView,
@@ -331,13 +329,21 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         binding.mapView.onStop()
         MapKitFactory.getInstance().onStop()
+        locationManager?.unsubscribe(locationListener)
         super.onStop()
+
     }
 
     override fun onStart() {
         super.onStart()
         MapKitFactory.getInstance().onStart()
         binding.mapView.onStart()
+
+        subscribeToLocationUpdate();
+    }
+
+    private fun subscribeToLocationUpdate() { //TODO make in background use ON
+        locationManager?.subscribeForLocationUpdates(0.0,0, 5.0,false, FilteringMode.OFF, locationListener)
     }
 
     private fun showPermissionSnackbar() {
