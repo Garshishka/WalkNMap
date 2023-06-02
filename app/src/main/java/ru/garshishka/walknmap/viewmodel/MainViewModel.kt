@@ -32,5 +32,5 @@ class MainViewModel(private val repository: PointRepository) : ViewModel() {
         repository.delete(point.latitude, point.longitude)
     }
 
-    fun getPoint(point: Point): GridPoint = repository.getPoint(point)
+    fun getPoint(point: Point): GridPoint? = repository.getPoint(point)
 }

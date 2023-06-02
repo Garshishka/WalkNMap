@@ -14,8 +14,9 @@ import androidx.core.view.isVisible
 import com.google.android.material.snackbar.Snackbar
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
-import com.yandex.mapkit.geometry.Circle
+import com.yandex.mapkit.geometry.LinearRing
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.geometry.Polygon
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.map.PlacemarkMapObject
@@ -31,6 +32,7 @@ import ru.garshishka.walknmap.ui.PlacesAdapter
 import ru.garshishka.walknmap.viewmodel.MainViewModel
 import ru.garshishka.walknmap.viewmodel.ViewModelFactory
 import kotlin.math.round
+
 
 class MainActivity : AppCompatActivity() {
     //Dependency part
@@ -78,8 +80,10 @@ class MainActivity : AppCompatActivity() {
 
         override fun onMarkClick(id: Long, point: Point) {
             val place = viewModel.getPoint(point)
-            moveMap(place.point)
-            interactionWithMark(place)
+            place?.let {
+                moveMap(it.point)
+                interactionWithMark(it)
+            }
         }
 
         override fun setAnchor() {
@@ -235,11 +239,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun addPlace() {
         val target = roundCoordinates(userLocationLayer.cameraPosition()!!.target)
-        viewModel.save(target, true)
-        //addMarker(target, true)
-        mapObjectCollection.addCircle(
-            Circle(target, 20f), Color.TRANSPARENT, 2f, Color.argb(60, 43, 255, 251)
-        )
+        if(viewModel.getPoint(target) == null) {
+            viewModel.save(target, true)
+            //addMarker(target, true)
+            val rectPoints: List<Point> = listOf(
+                Point(target.latitude - 0.000125, target.longitude - 0.000250),
+                Point(target.latitude - 0.000125, target.longitude + 0.000250),
+                Point(target.latitude + 0.000125, target.longitude + 0.000250),
+                Point(target.latitude + 0.000125, target.longitude - 0.000250)
+            )
+            //mapObjectCollection.addCircle(
+            //    Circle(target, 20f), Color.TRANSPARENT, 2f, Color.argb(60, 43, 255, 251)
+            //)
+            val rect = mapObjectCollection.addPolygon(
+                Polygon(
+                    LinearRing(rectPoints),
+                    ArrayList<LinearRing>()
+                )
+            )
+            rect.strokeColor = Color.TRANSPARENT
+            rect.fillColor = Color.argb(60, 43, 255, 251)
+        }
     }
 
     private fun addMarker(
@@ -294,7 +314,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun roundCoordinates(point: Point): Point {
         val newLat = round(point.latitude * 4000) / 4000
-        val newLon = round(point.longitude * 4000) / 4000
+        val newLon = round(point.longitude * 2000) / 2000
         return Point(newLat, newLon)
     }
 

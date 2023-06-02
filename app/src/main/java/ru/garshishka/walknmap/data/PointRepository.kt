@@ -20,8 +20,8 @@ class PointRepository(
         dao.deleteById(lat, lon)
     }
 
-    fun getPoint(point: Point): GridPoint {
+    fun getPoint(point: Point): GridPoint? {
         val entity = dao.findPoint(point.latitude, point.longitude)
-        return GridPoint(Point(entity.lat,entity.lon), entity.enabled)
+        return entity?.let{ GridPoint(Point(it.lat,it.lon), it.enabled)}
     }
 }

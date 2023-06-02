@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MapMarkers</string>
+    <string name="app_name">WalkNMap</string>
     <string name="no_user_location_error">Ваша локация еще не определена</string>
     <string name="retry">Повторить</string>
     <string name="need_geolocation">Необходимо разрешение на геолокацию чтобы использовать эту функцию</string>
