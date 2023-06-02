@@ -74,6 +74,11 @@ class MainActivity : AppCompatActivity() {
             addPlace(point)
         }*/ //TODO Delete in the future
 
+        override fun userMoved() {
+            println("User moved")
+            addUserLocation()
+        }
+
         override fun removeMapObject(mapObject: PlacemarkMapObject) {
             mapObjectCollection.remove(mapObject)
         }
@@ -111,7 +116,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var userLocationLayer: UserLocationLayer
     private val cameraListener = MapCameraListener(onMapInteractionListener)
     private val mapInputListener = MapInputListener(onMapInteractionListener)
-    private val userObjectListener = MapUserLocationListener()
+    private val userObjectListener = MapUserLocationListener(onMapInteractionListener)
     private var markerTapListener = PlaceTapListener(onMapInteractionListener)
     private var firstTimePlacingMarkers = true
 
@@ -137,6 +142,7 @@ class MainActivity : AppCompatActivity() {
         userLocationLayer.setObjectListener(userObjectListener)
 
         binding.mapView.map.apply {
+            move(CameraPosition(Point(55.752336,37.778196),16f,0.0f,0.0f))
             addCameraListener(cameraListener)
             addInputListener(mapInputListener)
         }
@@ -155,7 +161,7 @@ class MainActivity : AppCompatActivity() {
                 if (locationPermission) {
                     userLocationLayer.isHeadingEnabled = true
                     cameraListener.followUserLocation = userLocationLayer.isHeadingEnabled
-                    cameraToUserPosition(17f)
+                    cameraToUserPosition(18f)
                 } else {
                     requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 }
@@ -169,7 +175,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             testAddPoint.setOnClickListener {
-                addPlace()
+                addUserLocation()
             }
         }
 
@@ -179,13 +185,13 @@ class MainActivity : AppCompatActivity() {
         viewModel.data.observe(this) { places ->
             adapter.submitList(places)
             if (firstTimePlacingMarkers) {
-                places.forEach { addMarker(it.point, it.enabled) }
+                places.forEach { addSquare(it.point) }
                 firstTimePlacingMarkers = false
             }
         }
     }
 
-    fun moveMap(target: Point, zoom: Float = 15f, azimuth: Float = 0f, tilt: Float = 0f) {
+    fun moveMap(target: Point, zoom: Float = 17f, azimuth: Float = 0f, tilt: Float = 0f) {
         binding.mapView.map.move(
             CameraPosition(target, zoom, azimuth, tilt),
             Animation(Animation.Type.SMOOTH, 3f),
@@ -237,29 +243,33 @@ class MainActivity : AppCompatActivity() {
         alertDialog.show()
     }
 
-    private fun addPlace() {
+    private fun addUserLocation() {
         val target = roundCoordinates(userLocationLayer.cameraPosition()!!.target)
-        if(viewModel.getPoint(target) == null) {
+        if (viewModel.getPoint(target) == null) {
             viewModel.save(target, true)
-            //addMarker(target, true)
-            val rectPoints: List<Point> = listOf(
-                Point(target.latitude - 0.000125, target.longitude - 0.000250),
-                Point(target.latitude - 0.000125, target.longitude + 0.000250),
-                Point(target.latitude + 0.000125, target.longitude + 0.000250),
-                Point(target.latitude + 0.000125, target.longitude - 0.000250)
-            )
-            //mapObjectCollection.addCircle(
-            //    Circle(target, 20f), Color.TRANSPARENT, 2f, Color.argb(60, 43, 255, 251)
-            //)
-            val rect = mapObjectCollection.addPolygon(
-                Polygon(
-                    LinearRing(rectPoints),
-                    ArrayList<LinearRing>()
-                )
-            )
-            rect.strokeColor = Color.TRANSPARENT
-            rect.fillColor = Color.argb(60, 43, 255, 251)
+            addSquare(target)
         }
+    }
+
+    private fun addSquare(target: Point) {
+        //addMarker(target, true)
+        val rectPoints: List<Point> = listOf(
+            Point(target.latitude - 0.000125, target.longitude - 0.000250),
+            Point(target.latitude - 0.000125, target.longitude + 0.000250),
+            Point(target.latitude + 0.000125, target.longitude + 0.000250),
+            Point(target.latitude + 0.000125, target.longitude - 0.000250)
+        )
+        //mapObjectCollection.addCircle(
+        //    Circle(target, 20f), Color.TRANSPARENT, 2f, Color.argb(60, 43, 255, 251)
+        //)
+        val rect = mapObjectCollection.addPolygon(
+            Polygon(
+                LinearRing(rectPoints),
+                ArrayList<LinearRing>()
+            )
+        )
+        rect.strokeColor = Color.TRANSPARENT
+        rect.fillColor = Color.argb(60, 43, 255, 251)
     }
 
     private fun addMarker(

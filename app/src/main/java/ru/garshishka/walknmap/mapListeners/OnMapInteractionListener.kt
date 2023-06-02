@@ -6,6 +6,7 @@ import com.yandex.mapkit.map.PlacemarkMapObject
 interface OnMapInteractionListener {
     /*fun onMapLongClick(point: Point){}*/ //TODO Probably useless. Delete
 
+    fun userMoved(){}
     fun removeMapObject(mapObject: PlacemarkMapObject){}
 
     fun onMarkClick(id: Long, point: Point){}
