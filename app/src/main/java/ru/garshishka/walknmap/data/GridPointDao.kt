@@ -10,8 +10,16 @@ interface GridPointDao {
     @Query("SELECT * FROM location_table")
     fun getAll(): LiveData<List<GridEntity>>
 
+    @Query("SELECT * FROM location_table WHERE lat >= :latMin AND lat <= :latMax AND lon >= :lonMin AND lon <= :lonMax")
+    fun findPointsInArea(
+        latMin: Double,
+        latMax: Double,
+        lonMin: Double,
+        lonMax: Double
+    ): List<GridEntity>
+
     @Query("SELECT * FROM location_table WHERE lat = :lat AND lon = :lon")
-    fun findPoint(lat: Double, lon: Double) : GridEntity?
+    fun findPoint(lat: Double, lon: Double): GridEntity?
 
     @Upsert
     suspend fun save(point: GridEntity)

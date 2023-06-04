@@ -9,10 +9,15 @@ import ru.garshishka.walknmap.data.MapPoint
 import ru.garshishka.walknmap.data.PointRepository
 
 private val empty = MapPoint(0.0, 0.0)
+private val emptyPoints = emptyList<MapPoint>()
 
 class MainViewModel(private val repository: PointRepository) : ViewModel() {
-    val data = repository.getAll()
+    val data = repository.getAll() //MutableLiveData(emptyPoints)//
     val edited = MutableLiveData(empty)
+
+    fun getPointsOnScreen(minLat : Double, maxLat: Double, minLon: Double, maxLon: Double){
+        //data.value = repository.getPointsInArea(minLat,maxLat,minLon,maxLon)
+    }
 
     fun empty() {
         edited.value = empty

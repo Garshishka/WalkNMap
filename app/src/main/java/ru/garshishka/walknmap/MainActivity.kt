@@ -171,6 +171,7 @@ class MainActivity : AppCompatActivity() {
         binding.apply {
             findMyLocationFab.setOnClickListener {
                 if (locationPermission) {
+                    cameraListener.followUserLocation = true
                     cameraToUserPosition()
                 } else {
                     requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
