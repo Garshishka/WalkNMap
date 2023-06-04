@@ -1,6 +1,7 @@
 package ru.netology.mapmarkers
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.PointF
@@ -54,11 +55,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    //UI and logic part
-    lateinit var binding: ActivityMainBinding
-    val viewModel: MainViewModel by viewModels {
-        ViewModelFactory(container.repository)
-    }
+    //Listeners part
+
     private val onInteractionListener = object : OnInteractionListener {
         override fun onPlaceClick(place: MapPoint) {
             moveMap(place.toYandexPoint())
@@ -104,9 +102,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun noAnchor() {
-            userLocationLayer.resetAnchor()
-            userLocationLayer.isHeadingEnabled = false
+            if (this@MainActivity::userLocationLayer.isInitialized) {
+                userLocationLayer.resetAnchor()
+                userLocationLayer.isHeadingEnabled = false
+            }
         }
+    }
+
+
+    //UI and data part
+    lateinit var binding: ActivityMainBinding
+    val viewModel: MainViewModel by viewModels {
+        ViewModelFactory(container.repository)
     }
 
     //Map part
@@ -141,7 +148,11 @@ class MainActivity : AppCompatActivity() {
         locationManager = MapKitFactory.getInstance().createLocationManager()
 
         binding.mapView.map.apply {
-            move(CameraPosition(Point(55.752336, 37.778196), 16f, 0.0f, 0.0f))
+            val sharedPref = this@MainActivity.getPreferences(Context.MODE_PRIVATE) ?: return
+            val lastLat = sharedPref.getFloat("lastLat", 0.0f).toDouble()
+            val lastLon = sharedPref.getFloat("lastLon", 0.0f).toDouble()
+            moveMap(Point(lastLat, lastLon))
+
             addCameraListener(cameraListener)
             addInputListener(mapInputListener)
         }
@@ -252,10 +263,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addUserLocation() {
-        val target = userLocationLayer.cameraPosition()!!.target.roundCoordinates()
-        if (viewModel.getPoint(target) == null) {
-            viewModel.save(MapPoint(target.latitude, target.longitude), true)
-            addSquare(target)
+        userLocationLayer.cameraPosition()?.let {
+            val target = it.target.roundCoordinates()
+            if (viewModel.getPoint(target) == null) {
+                viewModel.save(MapPoint(target.latitude, target.longitude), true)
+                addSquare(target)
+            }
         }
     }
 
@@ -330,24 +343,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        saveLastLocation()
         binding.mapView.onStop()
         MapKitFactory.getInstance().onStop()
         locationManager?.unsubscribe(locationListener)
         super.onStop()
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        saveLastLocation()
     }
 
     override fun onStart() {
         super.onStart()
         MapKitFactory.getInstance().onStart()
         binding.mapView.onStart()
-
         if (locationPermission) {
             subscribeToLocationUpdate()
         }
     }
 
     private fun subscribeToLocationUpdate() { //TODO make in background use ON
-        println("ALLO")
         locationManager?.subscribeForLocationUpdates(
             0.0,
             0,
@@ -356,6 +372,25 @@ class MainActivity : AppCompatActivity() {
             FilteringMode.OFF,
             locationListener
         )
+    }
+
+    private fun saveLastLocation() {
+        if (this::userLocationLayer.isInitialized) {
+            if (userLocationLayer.cameraPosition() != null) {
+                val sharedPref = this.getPreferences(Context.MODE_PRIVATE) ?: return
+                with(sharedPref.edit()) {
+                    putFloat(
+                        "lastLat",
+                        userLocationLayer.cameraPosition()!!.target.latitude.toFloat()
+                    )
+                    putFloat(
+                        "lastLon",
+                        userLocationLayer.cameraPosition()!!.target.longitude.toFloat()
+                    )
+                    apply()
+                }
+            }
+        }
     }
 
     private fun showPermissionSnackbar() {
