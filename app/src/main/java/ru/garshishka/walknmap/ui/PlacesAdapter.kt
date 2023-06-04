@@ -5,13 +5,13 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import ru.garshishka.walknmap.data.GridPoint
+import ru.garshishka.walknmap.data.MapPoint
 import ru.garshishka.walknmap.databinding.PlacesListLayoutBinding
 
 class PlacesAdapter(
     private val onInteractionListener: OnInteractionListener,
 ) :
-    ListAdapter<GridPoint, PlacesViewHolder>(PlaceDiffCallback()) {
+    ListAdapter<MapPoint, PlacesViewHolder>(PlaceDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlacesViewHolder {
         val binding =
@@ -30,10 +30,10 @@ class PlacesViewHolder(
     private val onInteractionListener: OnInteractionListener,
 ) :
     RecyclerView.ViewHolder(binding.root) {
-    fun bind(place: GridPoint) {
+    fun bind(place: MapPoint) {
         binding.apply {
-            val lat = place.point.latitude.toString()
-            val long = place.point.longitude.toString()
+            val lat = place.lat.toString()
+            val long = place.lon.toString()
             placeCoords.text = "$lat | $long"
 
             placeCard.setOnClickListener {
@@ -46,12 +46,12 @@ class PlacesViewHolder(
     }
 }
 
-class PlaceDiffCallback : DiffUtil.ItemCallback<GridPoint>() {
-    override fun areItemsTheSame(oldItem: GridPoint, newItem: GridPoint): Boolean {
-        return oldItem.point == newItem.point
+class PlaceDiffCallback : DiffUtil.ItemCallback<MapPoint>() {
+    override fun areItemsTheSame(oldItem: MapPoint, newItem: MapPoint): Boolean {
+        return oldItem == newItem
     }
 
-    override fun areContentsTheSame(oldItem: GridPoint, newItem: GridPoint): Boolean {
+    override fun areContentsTheSame(oldItem: MapPoint, newItem: MapPoint): Boolean {
         return oldItem == newItem
     }
 }

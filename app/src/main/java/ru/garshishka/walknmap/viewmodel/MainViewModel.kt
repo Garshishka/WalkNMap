@@ -5,10 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yandex.mapkit.geometry.Point
 import kotlinx.coroutines.launch
-import ru.garshishka.walknmap.data.GridPoint
+import ru.garshishka.walknmap.data.MapPoint
 import ru.garshishka.walknmap.data.PointRepository
 
-private val empty = GridPoint(Point(0.0, 0.0))
+private val empty = MapPoint(0.0, 0.0)
 
 class MainViewModel(private val repository: PointRepository) : ViewModel() {
     val data = repository.getAll()
@@ -18,9 +18,9 @@ class MainViewModel(private val repository: PointRepository) : ViewModel() {
         edited.value = empty
     }
 
-    fun save(point: Point, enabled: Boolean = false) = viewModelScope.launch {
+    fun save(point: MapPoint, enabled: Boolean = false) = viewModelScope.launch {
         edited.value?.let {
-            edited.value = it.copy(point, enabled)
+            edited.value = point.copy(point.lat, point.lon)
         }
         edited.value?.let {
             repository.save(it)
@@ -32,5 +32,5 @@ class MainViewModel(private val repository: PointRepository) : ViewModel() {
         repository.delete(point.latitude, point.longitude)
     }
 
-    fun getPoint(point: Point): GridPoint? = repository.getPoint(point)
+    fun getPoint(point: Point): Point? = repository.getPoint(point)
 }

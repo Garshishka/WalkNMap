@@ -8,10 +8,7 @@ interface OnMapInteractionListener {
 
     fun userMoved(){}
     fun removeMapObject(mapObject: PlacemarkMapObject){}
-
     fun onMarkClick(id: Long, point: Point){}
-
     fun setAnchor(){}
-
     fun noAnchor(){}
 }

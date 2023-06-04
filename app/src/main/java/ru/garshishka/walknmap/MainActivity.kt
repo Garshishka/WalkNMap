@@ -24,7 +24,9 @@ import com.yandex.mapkit.map.PlacemarkMapObject
 import com.yandex.mapkit.user_location.UserLocationLayer
 import com.yandex.runtime.image.ImageProvider
 import ru.garshishka.walknmap.R
-import ru.garshishka.walknmap.data.GridPoint
+import ru.garshishka.walknmap.data.MapPoint
+import ru.garshishka.walknmap.data.roundCoordinates
+import ru.garshishka.walknmap.data.toYandexPoint
 import ru.garshishka.walknmap.databinding.ActivityMainBinding
 import ru.garshishka.walknmap.di.DependencyContainer
 import ru.garshishka.walknmap.mapListeners.*
@@ -32,7 +34,6 @@ import ru.garshishka.walknmap.ui.OnInteractionListener
 import ru.garshishka.walknmap.ui.PlacesAdapter
 import ru.garshishka.walknmap.viewmodel.MainViewModel
 import ru.garshishka.walknmap.viewmodel.ViewModelFactory
-import kotlin.math.round
 
 
 class MainActivity : AppCompatActivity() {
@@ -45,6 +46,9 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
                 locationPermission = true
+                if (!this::userLocationLayer.isInitialized) {
+                    setUpUserPosition()
+                }
             } else {
                 showPermissionSnackbar()
             }
@@ -56,13 +60,12 @@ class MainActivity : AppCompatActivity() {
         ViewModelFactory(container.repository)
     }
     private val onInteractionListener = object : OnInteractionListener {
-
-        override fun onPlaceClick(place: GridPoint) {
-            moveMap(place.point)
+        override fun onPlaceClick(place: MapPoint) {
+            moveMap(place.toYandexPoint())
         }
 
-        override fun onDeleteClick(place: GridPoint) {
-            deletePlace(place)
+        override fun onDeleteClick(place: MapPoint) {
+            deletePlace(place.toYandexPoint())
         }
 
     }
@@ -82,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         override fun onMarkClick(id: Long, point: Point) {
             val place = viewModel.getPoint(point)
             place?.let {
-                moveMap(it.point)
+                moveMap(it)
                 interactionWithMark(it)
             }
         }
@@ -130,21 +133,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setUpMap() {
-        val mapKit = MapKitFactory.getInstance()
         mapObjectCollection = binding.mapView.map.mapObjects.addCollection()
-        userLocationLayer = mapKit.createUserLocationLayer(binding.mapView.mapWindow)
-        userLocationLayer.isVisible = true
-        userLocationLayer.isHeadingEnabled = false
+        if (locationPermission) {
+            setUpUserPosition()
+        }
 
-        locationManager = mapKit.createLocationManager()
-
-        userLocationLayer.setObjectListener(userObjectListener)
+        locationManager = MapKitFactory.getInstance().createLocationManager()
 
         binding.mapView.map.apply {
-            move(CameraPosition(Point(55.752336,37.778196),16f,0.0f,0.0f))
+            move(CameraPosition(Point(55.752336, 37.778196), 16f, 0.0f, 0.0f))
             addCameraListener(cameraListener)
             addInputListener(mapInputListener)
         }
+    }
+
+    private fun setUpUserPosition() {
+        userLocationLayer =
+            MapKitFactory.getInstance().createUserLocationLayer(binding.mapView.mapWindow)
+        userLocationLayer.isVisible = true
+        userLocationLayer.isHeadingEnabled = false
+        userLocationLayer.setObjectListener(userObjectListener)
+        subscribeToLocationUpdate()
     }
 
     private fun subscribe() {
@@ -184,7 +193,7 @@ class MainActivity : AppCompatActivity() {
         viewModel.data.observe(this) { places ->
             adapter.submitList(places)
             if (firstTimePlacingMarkers) {
-                places.forEach { addSquare(it.point) }
+                places.forEach { addSquare(it.toYandexPoint()) }
                 firstTimePlacingMarkers = false
             }
         }
@@ -199,7 +208,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     //Dialog for tapping the mark: Delete or rename
-    fun interactionWithMark(place: GridPoint) {
+    fun interactionWithMark(place: Point) {
         val alertDialog: AlertDialog = this.let {
             val builder = AlertDialog.Builder(it)
             builder.apply {
@@ -221,7 +230,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     //Dialog for removing place
-    fun deletePlace(place: GridPoint) {
+    fun deletePlace(place: Point) {
         val alertDialog: AlertDialog = this.let {
             val builder = AlertDialog.Builder(it)
             builder.apply {
@@ -229,8 +238,8 @@ class MainActivity : AppCompatActivity() {
                 setPositiveButton(
                     getString(R.string.delete_place)
                 ) { _, _ ->
-                    traverseMapObjectsToRemove(place.point)
-                    viewModel.delete(place.point)
+                    traverseMapObjectsToRemove(place)
+                    viewModel.delete(place)
                 }
                 setNegativeButton(
                     getString(R.string.back)
@@ -243,9 +252,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addUserLocation() {
-        val target = roundCoordinates(userLocationLayer.cameraPosition()!!.target)
+        val target = userLocationLayer.cameraPosition()!!.target.roundCoordinates()
         if (viewModel.getPoint(target) == null) {
-            viewModel.save(target, true)
+            viewModel.save(MapPoint(target.latitude, target.longitude), true)
             addSquare(target)
         }
     }
@@ -253,10 +262,10 @@ class MainActivity : AppCompatActivity() {
     private fun addSquare(target: Point) {
         //addMarker(target, true)
         val rectPoints: List<Point> = listOf(
-            Point(target.latitude - 0.000125, target.longitude - 0.000250),
-            Point(target.latitude - 0.000125, target.longitude + 0.000250),
-            Point(target.latitude + 0.000125, target.longitude + 0.000250),
-            Point(target.latitude + 0.000125, target.longitude - 0.000250)
+            Point(target.latitude - 0.000250, target.longitude - 0.000500),
+            Point(target.latitude - 0.000250, target.longitude + 0.000500),
+            Point(target.latitude + 0.000250, target.longitude + 0.000500),
+            Point(target.latitude + 0.000250, target.longitude - 0.000500)
         )
         //mapObjectCollection.addCircle(
         //    Circle(target, 20f), Color.TRANSPARENT, 2f, Color.argb(60, 43, 255, 251)
@@ -320,18 +329,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun roundCoordinates(point: Point): Point {
-        val newLat = round(point.latitude * 4000) / 4000
-        val newLon = round(point.longitude * 2000) / 2000
-        return Point(newLat, newLon)
-    }
-
     override fun onStop() {
         binding.mapView.onStop()
         MapKitFactory.getInstance().onStop()
         locationManager?.unsubscribe(locationListener)
         super.onStop()
-
     }
 
     override fun onStart() {
@@ -339,11 +341,21 @@ class MainActivity : AppCompatActivity() {
         MapKitFactory.getInstance().onStart()
         binding.mapView.onStart()
 
-        subscribeToLocationUpdate();
+        if (locationPermission) {
+            subscribeToLocationUpdate()
+        }
     }
 
     private fun subscribeToLocationUpdate() { //TODO make in background use ON
-        locationManager?.subscribeForLocationUpdates(0.0,0, 5.0,false, FilteringMode.OFF, locationListener)
+        println("ALLO")
+        locationManager?.subscribeForLocationUpdates(
+            0.0,
+            0,
+            5.0,
+            false,
+            FilteringMode.OFF,
+            locationListener
+        )
     }
 
     private fun showPermissionSnackbar() {

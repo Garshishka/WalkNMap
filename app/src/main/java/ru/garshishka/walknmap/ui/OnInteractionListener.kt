@@ -1,9 +1,10 @@
 package ru.garshishka.walknmap.ui
 
-import ru.garshishka.walknmap.data.GridPoint
+import ru.garshishka.walknmap.data.MapPoint
+
 
 interface OnInteractionListener {
-    fun onPlaceClick(place: GridPoint){}
+    fun onPlaceClick(place: MapPoint) {}
 
-    fun onDeleteClick(place: GridPoint){}
+    fun onDeleteClick(place: MapPoint) {}
 }
