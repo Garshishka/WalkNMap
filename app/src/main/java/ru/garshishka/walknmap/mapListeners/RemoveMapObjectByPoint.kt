@@ -2,6 +2,7 @@ package ru.garshishka.walknmap.mapListeners
 
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.*
+import ru.garshishka.walknmap.data.checkSquareFirstCorner
 
 class RemoveMapObjectByPoint(val onMapInteractionListener: OnMapInteractionListener, val point: Point) : MapObjectVisitor {
     override fun onPlacemarkVisited(mapObject: PlacemarkMapObject) {
@@ -13,7 +14,10 @@ class RemoveMapObjectByPoint(val onMapInteractionListener: OnMapInteractionListe
     override fun onPolylineVisited(p0: PolylineMapObject) {
     }
 
-    override fun onPolygonVisited(p0: PolygonMapObject) {
+    override fun onPolygonVisited(polygon: PolygonMapObject) {
+        if(point.checkSquareFirstCorner(polygon.geometry.outerRing.points[0])){
+            onMapInteractionListener.removePolygon(polygon)
+        }
     }
 
     override fun onCircleVisited(p0: CircleMapObject) {

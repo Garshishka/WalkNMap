@@ -15,19 +15,16 @@ import androidx.core.view.isVisible
 import com.google.android.material.snackbar.Snackbar
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
-import com.yandex.mapkit.geometry.LinearRing
 import com.yandex.mapkit.geometry.Point
-import com.yandex.mapkit.geometry.Polygon
 import com.yandex.mapkit.location.FilteringMode
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.map.PlacemarkMapObject
+import com.yandex.mapkit.map.PolygonMapObject
 import com.yandex.mapkit.user_location.UserLocationLayer
 import com.yandex.runtime.image.ImageProvider
 import ru.garshishka.walknmap.R
-import ru.garshishka.walknmap.data.MapPoint
-import ru.garshishka.walknmap.data.roundCoordinates
-import ru.garshishka.walknmap.data.toYandexPoint
+import ru.garshishka.walknmap.data.*
 import ru.garshishka.walknmap.databinding.ActivityMainBinding
 import ru.garshishka.walknmap.di.DependencyContainer
 import ru.garshishka.walknmap.mapListeners.*
@@ -56,7 +53,6 @@ class MainActivity : AppCompatActivity() {
         }
 
     //Listeners part
-
     private val onInteractionListener = object : OnInteractionListener {
         override fun onPlaceClick(place: MapPoint) {
             moveMap(place.toYandexPoint())
@@ -68,6 +64,12 @@ class MainActivity : AppCompatActivity() {
 
     }
     private val onMapInteractionListener = object : OnMapInteractionListener {
+        override fun cameraMoved() {
+            //if we have a new screen area - we change the set of visible squares
+            if (tryToChangeScreenMapArea()) {
+                viewModel.getPointsOnScreen(mapScreenArea)
+            }
+        }
         /*override fun onMapLongClick(point: Point) {
             addPlace(point)
         }*/ //TODO Delete in the future
@@ -78,6 +80,10 @@ class MainActivity : AppCompatActivity() {
 
         override fun removeMapObject(mapObject: PlacemarkMapObject) {
             mapObjectCollection.remove(mapObject)
+        }
+
+        override fun removePolygon(polygonMapObject: PolygonMapObject) {
+            mapObjectCollection.remove(polygonMapObject)
         }
 
         override fun onMarkClick(id: Long, point: Point) {
@@ -109,12 +115,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
     //UI and data part
     lateinit var binding: ActivityMainBinding
     val viewModel: MainViewModel by viewModels {
         ViewModelFactory(container.repository)
     }
+    private var mapScreenArea = MapScreenCoordinates(0.0, 1.0, 0.0, 1.0)
 
     //Map part
     private lateinit var mapObjectCollection: MapObjectCollection
@@ -125,7 +131,6 @@ class MainActivity : AppCompatActivity() {
     private val userObjectListener = MapUserLocationListener()
     private val locationListener = LocationChangeListener(onMapInteractionListener)
     private var markerTapListener = PlaceTapListener(onMapInteractionListener)
-    private var firstTimePlacingMarkers = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -202,12 +207,9 @@ class MainActivity : AppCompatActivity() {
         val adapter = PlacesAdapter(onInteractionListener)
         binding.placesView.adapter = adapter
 
-        viewModel.data.observe(this) { places ->
+        viewModel.pointList.observe(this) { places ->
             adapter.submitList(places)
-            if (firstTimePlacingMarkers) {
-                places.forEach { addSquare(it.toYandexPoint()) }
-                firstTimePlacingMarkers = false
-            }
+            redrawScreenSquares()
         }
     }
 
@@ -274,24 +276,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addSquare(target: Point) {
-        //addMarker(target, true)
-        val rectPoints: List<Point> = listOf(
-            Point(target.latitude - 0.000250, target.longitude - 0.000500),
-            Point(target.latitude - 0.000250, target.longitude + 0.000500),
-            Point(target.latitude + 0.000250, target.longitude + 0.000500),
-            Point(target.latitude + 0.000250, target.longitude - 0.000500)
-        )
-        //mapObjectCollection.addCircle(
-        //    Circle(target, 20f), Color.TRANSPARENT, 2f, Color.argb(60, 43, 255, 251)
-        //)
         val rect = mapObjectCollection.addPolygon(
-            Polygon(
-                LinearRing(rectPoints),
-                ArrayList<LinearRing>()
-            )
+            target.makeSquarePolygon()
         )
         rect.strokeColor = Color.TRANSPARENT
         rect.fillColor = Color.argb(60, 43, 255, 251)
+    }
+
+    private fun redrawScreenSquares(){
+        viewModel.pointList.value?.let { points ->
+            //new points get squares
+            points.filterNot { viewModel.oldPointList.contains(it) }.forEach {
+                addSquare(it.toYandexPoint())
+            }
+            //squares we can't see anymore get deleted
+            viewModel.oldPointList.filterNot { points.contains(it) }.forEach {
+                mapObjectCollection.traverse(RemoveMapObjectByPoint(onMapInteractionListener, it.toYandexPoint()))
+            }
+        }
     }
 
     private fun addMarker(
@@ -328,6 +330,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun tryToChangeScreenMapArea(): Boolean {
+        //Taking a screen region and rounding it coordinates
+        val cameraRegion = binding.mapView.map.visibleRegion
+        val newMapArea = MapScreenCoordinates(
+            cameraRegion.bottomLeft.latitude,
+            cameraRegion.topRight.latitude,
+            cameraRegion.bottomLeft.longitude,
+            cameraRegion.topRight.longitude
+        ).roundCoordinates()
+        //Returning if the new screen region is different
+        if (mapScreenArea != newMapArea) {
+            mapScreenArea = newMapArea
+            return true
+        } else {
+            return false
+        }
+    }
+
+
     private fun checkMapPermission() {
         when {
             ContextCompat.checkSelfPermission(
@@ -350,6 +371,7 @@ class MainActivity : AppCompatActivity() {
         locationManager?.unsubscribe(locationListener)
         super.onStop()
     }
+
     override fun onDestroy() {
         super.onDestroy()
         saveLastLocation()

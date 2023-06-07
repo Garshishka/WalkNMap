@@ -19,6 +19,7 @@ class MapCameraListener(val onMapInteractionListener: OnMapInteractionListener) 
                onMapInteractionListener.setAnchor()
                 followUserLocation = false
             }
+            onMapInteractionListener.cameraMoved()
         } else {
             if (!followUserLocation) {
                 onMapInteractionListener.noAnchor()

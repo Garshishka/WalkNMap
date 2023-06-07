@@ -6,24 +6,28 @@ import androidx.lifecycle.viewModelScope
 import com.yandex.mapkit.geometry.Point
 import kotlinx.coroutines.launch
 import ru.garshishka.walknmap.data.MapPoint
+import ru.garshishka.walknmap.data.MapScreenCoordinates
 import ru.garshishka.walknmap.data.PointRepository
 
 private val empty = MapPoint(0.0, 0.0)
 private val emptyPoints = emptyList<MapPoint>()
 
 class MainViewModel(private val repository: PointRepository) : ViewModel() {
-    val data = repository.getAll() //MutableLiveData(emptyPoints)//
+    val pointList = MutableLiveData(emptyPoints)//repository.getAll()//
+    var oldPointList: List<MapPoint> = emptyList()
     val edited = MutableLiveData(empty)
 
-    fun getPointsOnScreen(minLat : Double, maxLat: Double, minLon: Double, maxLon: Double){
-        //data.value = repository.getPointsInArea(minLat,maxLat,minLon,maxLon)
+    fun getPointsOnScreen(area: MapScreenCoordinates) {
+        pointList.value?.let { oldPointList = it }
+        pointList.value =
+            repository.getPointsInArea(area.minLat, area.maxLat, area.minLon, area.maxLon)
     }
 
     fun empty() {
         edited.value = empty
     }
 
-    fun save(point: MapPoint, enabled: Boolean = false) = viewModelScope.launch {
+    fun save(point: MapPoint) = viewModelScope.launch {
         edited.value?.let {
             edited.value = point.copy(point.lat, point.lon)
         }
