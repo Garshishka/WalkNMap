@@ -9,7 +9,6 @@ class LocationChangeListener(val onMapInteractionListener: OnMapInteractionListe
 
     override fun onLocationUpdated(location: Location) {
         if(locationStatusOk) {
-            println("LL: ${location.position.latitude} - ${location.position.longitude} | ${location.speed} | ${location.relativeTimestamp} | ${location.accuracy}")
             onMapInteractionListener.userMoved()
         }
     }

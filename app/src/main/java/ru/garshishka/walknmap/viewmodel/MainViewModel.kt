@@ -8,8 +8,9 @@ import kotlinx.coroutines.launch
 import ru.garshishka.walknmap.data.MapPoint
 import ru.garshishka.walknmap.data.MapScreenCoordinates
 import ru.garshishka.walknmap.data.PointRepository
+import java.time.OffsetDateTime
 
-private val empty = MapPoint(0.0, 0.0)
+private val empty = MapPoint(0.0, 0.0, OffsetDateTime.now())
 private val emptyPoints = emptyList<MapPoint>()
 
 class MainViewModel(private val repository: PointRepository) : ViewModel() {

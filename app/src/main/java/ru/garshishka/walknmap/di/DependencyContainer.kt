@@ -2,8 +2,8 @@ package ru.garshishka.walknmap.di
 
 import android.content.Context
 import androidx.room.Room
-import ru.garshishka.walknmap.data.AppDb
 import ru.garshishka.walknmap.data.PointRepository
+import ru.garshishka.walknmap.db.AppDb
 
 class DependencyContainer private constructor(context: Context) {
 
@@ -26,7 +26,7 @@ class DependencyContainer private constructor(context: Context) {
             .fallbackToDestructiveMigration()
             .build()
 
-    private val gridPointDao = appDb.gridPointDao()
+    private val gridPointDao = appDb.mapPointDao()
 
     val repository: PointRepository = PointRepository(gridPointDao)
 }

@@ -32,6 +32,7 @@ import ru.garshishka.walknmap.ui.OnInteractionListener
 import ru.garshishka.walknmap.ui.PlacesAdapter
 import ru.garshishka.walknmap.viewmodel.MainViewModel
 import ru.garshishka.walknmap.viewmodel.ViewModelFactory
+import java.time.OffsetDateTime
 
 
 class MainActivity : AppCompatActivity() {
@@ -269,7 +270,7 @@ class MainActivity : AppCompatActivity() {
         userLocationLayer.cameraPosition()?.let {
             val target = it.target.roundCoordinates()
             if (viewModel.getPoint(target) == null) {
-                viewModel.save(MapPoint(target.latitude, target.longitude))
+                viewModel.save(MapPoint(target.latitude, target.longitude, OffsetDateTime.now()))
                 addSquare(target)
             }
         }

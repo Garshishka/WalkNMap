@@ -1,25 +1,20 @@
 package ru.garshishka.walknmap.data
 
-import androidx.lifecycle.map
 import com.yandex.mapkit.geometry.Point
+import ru.garshishka.walknmap.db.MapPointDao
+import ru.garshishka.walknmap.db.MapPointEntity
 
 class PointRepository(
-    private val dao: GridPointDao
+    private val dao: MapPointDao
 ) {
-    fun getAll() = dao.getAll().map { list ->
-        list.map {
-            MapPoint(it.lat, it.lon)
-        }
-    }
-
     fun getPointsInArea(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double) =
         dao.findPointsInArea(minLat, maxLat, minLon, maxLon).map {
-            MapPoint(it.lat, it.lon)
+            it.toDto()
         }
 
 
     suspend fun save(place: MapPoint) {
-        dao.save(GridEntity.fromDto(place))
+        dao.save(MapPointEntity.fromDto(place))
     }
 
     fun delete(lat: Double, lon: Double) {

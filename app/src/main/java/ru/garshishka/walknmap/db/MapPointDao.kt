@@ -1,4 +1,4 @@
-package ru.garshishka.walknmap.data
+package ru.garshishka.walknmap.db
 
 import androidx.lifecycle.LiveData
 import androidx.room.Dao
@@ -6,9 +6,9 @@ import androidx.room.Query
 import androidx.room.Upsert
 
 @Dao
-interface GridPointDao {
+interface MapPointDao {
     @Query("SELECT * FROM location_table")
-    fun getAll(): LiveData<List<GridEntity>>
+    fun getAll(): LiveData<List<MapPointEntity>>
 
     @Query("SELECT * FROM location_table WHERE lat >= :latMin AND lat <= :latMax AND lon >= :lonMin AND lon <= :lonMax")
     fun findPointsInArea(
@@ -16,13 +16,13 @@ interface GridPointDao {
         latMax: Double,
         lonMin: Double,
         lonMax: Double
-    ): List<GridEntity>
+    ): List<MapPointEntity>
 
     @Query("SELECT * FROM location_table WHERE lat = :lat AND lon = :lon")
-    fun findPoint(lat: Double, lon: Double): GridEntity?
+    fun findPoint(lat: Double, lon: Double): MapPointEntity?
 
     @Upsert
-    suspend fun save(point: GridEntity)
+    suspend fun save(point: MapPointEntity)
 
     @Query("DELETE FROM location_table WHERE lat = :lat AND lon = :lon")
     fun deleteById(lat: Double, lon: Double)
