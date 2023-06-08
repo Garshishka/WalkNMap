@@ -269,7 +269,7 @@ class MainActivity : AppCompatActivity() {
         userLocationLayer.cameraPosition()?.let {
             val target = it.target.roundCoordinates()
             if (viewModel.getPoint(target) == null) {
-                viewModel.save(MapPoint(target.latitude, target.longitude), true)
+                viewModel.save(MapPoint(target.latitude, target.longitude))
                 addSquare(target)
             }
         }
