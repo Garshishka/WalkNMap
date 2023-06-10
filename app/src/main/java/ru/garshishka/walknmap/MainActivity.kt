@@ -214,14 +214,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun moveMap(target: Point, zoom: Float = 17f, azimuth: Float = 0f, tilt: Float = 0f) {
-        binding.mapView.map.move(
-            CameraPosition(target, zoom, azimuth, tilt),
-            Animation(Animation.Type.SMOOTH, 3f),
-            null
-        )
-    }
-
     //Dialog for tapping the mark: Delete or rename
     fun interactionWithMark(place: Point) {
         val alertDialog: AlertDialog = this.let {
@@ -266,6 +258,14 @@ class MainActivity : AppCompatActivity() {
         alertDialog.show()
     }
 
+    fun moveMap(target: Point, zoom: Float = 17f, azimuth: Float = 0f, tilt: Float = 0f) {
+        binding.mapView.map.move(
+            CameraPosition(target, zoom, azimuth, tilt),
+            Animation(Animation.Type.SMOOTH, 3f),
+            null
+        )
+    }
+
     private fun addUserLocation() {
         userLocationLayer.cameraPosition()?.let {
             val target = it.target.roundCoordinates()
@@ -284,7 +284,7 @@ class MainActivity : AppCompatActivity() {
         rect.fillColor = Color.argb(60, 43, 255, 251)
     }
 
-    private fun redrawScreenSquares(){
+    private fun redrawScreenSquares() {
         viewModel.pointList.value?.let { points ->
             //new points get squares
             points.filterNot { viewModel.oldPointList.contains(it) }.forEach {
@@ -292,7 +292,12 @@ class MainActivity : AppCompatActivity() {
             }
             //squares we can't see anymore get deleted
             viewModel.oldPointList.filterNot { points.contains(it) }.forEach {
-                mapObjectCollection.traverse(RemoveMapObjectByPoint(onMapInteractionListener, it.toYandexPoint()))
+                mapObjectCollection.traverse(
+                    RemoveMapObjectByPoint(
+                        onMapInteractionListener,
+                        it.toYandexPoint()
+                    )
+                )
             }
         }
     }
