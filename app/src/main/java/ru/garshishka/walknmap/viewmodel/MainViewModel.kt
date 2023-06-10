@@ -11,7 +11,7 @@ import ru.garshishka.walknmap.data.PointRepository
 import java.time.OffsetDateTime
 
 private val empty = MapPoint(0.0, 0.0, OffsetDateTime.now())
-private val emptyPoints = emptyList<MapPoint>()
+private val emptyPoints = mutableListOf<MapPoint>()
 
 class MainViewModel(private val repository: PointRepository) : ViewModel() {
     val pointList = MutableLiveData(emptyPoints)//repository.getAll()//
@@ -21,7 +21,7 @@ class MainViewModel(private val repository: PointRepository) : ViewModel() {
     fun getPointsOnScreen(area: MapScreenCoordinates) {
         pointList.value?.let { oldPointList = it }
         pointList.value =
-            repository.getPointsInArea(area.minLat, area.maxLat, area.minLon, area.maxLon)
+            repository.getPointsInArea(area.minLat, area.maxLat, area.minLon, area.maxLon).toMutableList()
     }
 
     fun empty() {
@@ -34,6 +34,7 @@ class MainViewModel(private val repository: PointRepository) : ViewModel() {
         }
         edited.value?.let {
             repository.save(it)
+            pointList.value!!.add(point)
         }
         empty()
     }
