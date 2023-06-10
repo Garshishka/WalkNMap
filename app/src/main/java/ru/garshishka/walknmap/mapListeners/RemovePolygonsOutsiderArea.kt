@@ -1,21 +1,22 @@
 package ru.garshishka.walknmap.mapListeners
 
-import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.*
-import ru.garshishka.walknmap.data.checkCentralPoint
+import ru.garshishka.walknmap.data.AreaCoordinates
+import ru.garshishka.walknmap.data.getCentralPoint
+import ru.garshishka.walknmap.data.isPointOutside
 
-class RemoveMapObjectByPoint(val mapObjectCollection: MapObjectCollection, val point: Point) : MapObjectVisitor {
+class RemovePolygonsOutsiderArea(
+    val mapObjectCollection: MapObjectCollection,
+    val boundingArea: AreaCoordinates
+) : MapObjectVisitor {
     override fun onPlacemarkVisited(mapObject: PlacemarkMapObject) {
-        if(mapObject.geometry.latitude == point.latitude && mapObject.geometry.longitude == point.longitude) {
-            mapObjectCollection.remove(mapObject)
-        }
     }
 
     override fun onPolylineVisited(p0: PolylineMapObject) {
     }
 
     override fun onPolygonVisited(polygon: PolygonMapObject) {
-        if(polygon.checkCentralPoint(point)){
+        if (boundingArea.isPointOutside(polygon.getCentralPoint())) {
             mapObjectCollection.remove(polygon)
         }
     }

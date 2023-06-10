@@ -3,12 +3,10 @@ package ru.netology.mapmarkers
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.graphics.PointF
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -19,10 +17,9 @@ import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.location.FilteringMode
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.MapObjectCollection
-import com.yandex.mapkit.map.PlacemarkMapObject
 import com.yandex.mapkit.map.PolygonMapObject
 import com.yandex.mapkit.user_location.UserLocationLayer
-import com.yandex.runtime.image.ImageProvider
+import ru.garshishka.walknmap.DRAW_FOG
 import ru.garshishka.walknmap.R
 import ru.garshishka.walknmap.data.*
 import ru.garshishka.walknmap.databinding.ActivityMainBinding
@@ -30,9 +27,9 @@ import ru.garshishka.walknmap.di.DependencyContainer
 import ru.garshishka.walknmap.mapListeners.*
 import ru.garshishka.walknmap.ui.OnInteractionListener
 import ru.garshishka.walknmap.ui.PlacesAdapter
+import ru.garshishka.walknmap.ui.makeBoundingPolygon
 import ru.garshishka.walknmap.viewmodel.MainViewModel
 import ru.garshishka.walknmap.viewmodel.ViewModelFactory
-import java.time.OffsetDateTime
 
 
 class MainActivity : AppCompatActivity() {
@@ -60,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onDeleteClick(place: MapPoint) {
-            deletePlace(place.toYandexPoint())
+            traverseMapObjectsToRemove(place.toYandexPoint())
         }
 
     }
@@ -71,27 +68,15 @@ class MainActivity : AppCompatActivity() {
                 viewModel.getPointsOnScreen(mapScreenArea)
             }
         }
-        /*override fun onMapLongClick(point: Point) {
-            addPlace(point)
-        }*/ //TODO Delete in the future
 
         override fun userMoved() {
             addUserLocation()
-        }
-
-        override fun removeMapObject(mapObject: PlacemarkMapObject) {
-            mapObjectCollection.remove(mapObject)
-        }
-
-        override fun removePolygon(polygonMapObject: PolygonMapObject) {
-            mapObjectCollection.remove(polygonMapObject)
         }
 
         override fun onMarkClick(id: Long, point: Point) {
             val place = viewModel.getPoint(point)
             place?.let {
                 moveMap(it)
-                interactionWithMark(it)
             }
         }
 
@@ -121,17 +106,20 @@ class MainActivity : AppCompatActivity() {
     val viewModel: MainViewModel by viewModels {
         ViewModelFactory(container.repository)
     }
-    private var mapScreenArea = MapScreenCoordinates(0.0, 1.0, 0.0, 1.0)
+    private var mapScreenArea = AreaCoordinates(0.0, 1.0, 0.0, 1.0)
+    private var boundingFogArea = AreaCoordinates(0.0, 0.0, 0.0, 0.0)
 
     //Map part
     private lateinit var mapObjectCollection: MapObjectCollection
+    private lateinit var boundingFogObjectCollection: MapObjectCollection
     private lateinit var userLocationLayer: UserLocationLayer
     private var locationManager: com.yandex.mapkit.location.LocationManager? = null
     private val cameraListener = MapCameraListener(onMapInteractionListener)
     private val mapInputListener = MapInputListener(onMapInteractionListener)
     private val userObjectListener = MapUserLocationListener()
     private val locationListener = LocationChangeListener(onMapInteractionListener)
-    private var markerTapListener = PlaceTapListener(onMapInteractionListener)
+
+    private lateinit var boundingPolygon: PolygonMapObject
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -147,6 +135,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setUpMap() {
         mapObjectCollection = binding.mapView.map.mapObjects.addCollection()
+        boundingFogObjectCollection = binding.mapView.map.mapObjects.addCollection()
         if (locationPermission) {
             setUpUserPosition()
         }
@@ -214,50 +203,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    //Dialog for tapping the mark: Delete or rename
-    fun interactionWithMark(place: Point) {
-        val alertDialog: AlertDialog = this.let {
-            val builder = AlertDialog.Builder(it)
-            builder.apply {
-                //setTitle(place.name) //TODO delete later or rename
-                setMessage(getString(R.string.dialog_mark_interaction))
-                setPositiveButton(
-                    getString(R.string.delete_place)
-                ) { _, _ ->
-                    deletePlace(place)
-                }
-                setNegativeButton(
-                    getString(R.string.back)
-                ) { _, _ ->
-                }
-            }
-            builder.create()
-        }
-        alertDialog.show()
-    }
-
-    //Dialog for removing place
-    fun deletePlace(place: Point) {
-        val alertDialog: AlertDialog = this.let {
-            val builder = AlertDialog.Builder(it)
-            builder.apply {
-                setMessage(getString(R.string.dialog_delete_place))
-                setPositiveButton(
-                    getString(R.string.delete_place)
-                ) { _, _ ->
-                    traverseMapObjectsToRemove(place)
-                    viewModel.delete(place)
-                }
-                setNegativeButton(
-                    getString(R.string.back)
-                ) { _, _ ->
-                }
-            }
-            builder.create()
-        }
-        alertDialog.show()
-    }
-
     fun moveMap(target: Point, zoom: Float = 17f, azimuth: Float = 0f, tilt: Float = 0f) {
         binding.mapView.map.move(
             CameraPosition(target, zoom, azimuth, tilt),
@@ -270,54 +215,65 @@ class MainActivity : AppCompatActivity() {
         userLocationLayer.cameraPosition()?.let {
             val target = it.target.roundCoordinates()
             if (viewModel.getPoint(target) == null) {
-                viewModel.save(MapPoint(target.latitude, target.longitude, OffsetDateTime.now()))
-                addSquare(target)
+                viewModel.save(MapPoint(target.latitude, target.longitude))
+                target.addSquare(mapObjectCollection)
             }
         }
-    }
-
-    private fun addSquare(target: Point) {
-        val rect = mapObjectCollection.addPolygon(
-            target.makeSquarePolygon()
-        )
-        rect.strokeColor = Color.TRANSPARENT
-        rect.fillColor = Color.argb(60, 43, 255, 251)
     }
 
     private fun redrawScreenSquares() {
         viewModel.pointList.value?.let { points ->
-            //new points get squares
-            points.filterNot { viewModel.oldPointList.contains(it) }.forEach {
-                addSquare(it.toYandexPoint())
-            }
-            //squares we can't see anymore get deleted
-            viewModel.oldPointList.filterNot { points.contains(it) }.forEach {
-                mapObjectCollection.traverse(
-                    RemoveMapObjectByPoint(
-                        onMapInteractionListener,
-                        it.toYandexPoint()
-                    )
-                )
+            if (DRAW_FOG) {
+                if (points.isEmpty()) {
+                    redrawBoundingBoxFog(boundingFogArea.toZero())
+                } else {
+                    if (redrawBoundingBoxFog(
+                            AreaCoordinates(
+                                points.minBy { it.lat }.lat,
+                                points.maxBy { it.lat }.lat,
+                                points.minBy { it.lon }.lon,
+                                points.maxBy { it.lon }.lon,
+                            )
+                        )
+                    ) {
+                        //mapObjectCollection.traverse(RemovePolygonsOutsiderArea(mapObjectCollection,boundingFogArea))
+                        mapObjectCollection.clear()
+                        val emptyPoints =
+                            boundingFogArea.makePointList().filterNot { points.contains(it) }
+                        emptyPoints.forEach {
+                            it.toYandexPoint().addSquare(mapObjectCollection, true)
+                        }
+                    } else { }
+                }
+            } else {
+                //new points get squares
+                points.filterNot { viewModel.oldPointList.contains(it) }.forEach {
+                    it.toYandexPoint().addSquare(mapObjectCollection)
+                }
+                //squares we can't see anymore get deleted
+                viewModel.oldPointList.filterNot { points.contains(it) }.forEach {
+                    traverseMapObjectsToRemove(it.toYandexPoint())
+                }
             }
         }
     }
 
-    private fun addMarker(
-        target: Point,
-        userData: Any? = null,
-        pinGraphic: String = "location_pin.png",
-    ): PlacemarkMapObject {
-        val marker = mapObjectCollection.addPlacemark(
-            target,
-            ImageProvider.fromAsset(this, pinGraphic)
-        )
-        marker.userData = userData
-        markerTapListener.let { marker.addTapListener(it) }
-        return marker
+    private fun redrawBoundingBoxFog(newBoundingArea: AreaCoordinates): Boolean {
+        if (newBoundingArea != boundingFogArea) {
+            boundingFogArea = newBoundingArea
+            if (this::boundingPolygon.isInitialized) {
+                boundingFogObjectCollection.remove(boundingPolygon)
+            }
+            boundingPolygon =
+                makeBoundingPolygon(boundingFogArea, boundingFogObjectCollection)
+            return true
+        } else {
+            return false
+        }
     }
 
     private fun traverseMapObjectsToRemove(point: Point) {
-        mapObjectCollection.traverse(RemoveMapObjectByPoint(onMapInteractionListener, point))
+        mapObjectCollection.traverse(RemoveMapObjectByPoint(mapObjectCollection, point))
     }
 
     private fun cameraToUserPosition(zoom: Float = 17f) {
@@ -339,7 +295,7 @@ class MainActivity : AppCompatActivity() {
     private fun tryToChangeScreenMapArea(): Boolean {
         //Taking a screen region and rounding it coordinates
         val cameraRegion = binding.mapView.map.visibleRegion
-        val newMapArea = MapScreenCoordinates(
+        val newMapArea = AreaCoordinates(
             cameraRegion.bottomLeft.latitude,
             cameraRegion.topRight.latitude,
             cameraRegion.bottomLeft.longitude,
