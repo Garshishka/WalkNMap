@@ -63,10 +63,17 @@
         android:src="@drawable/baseline_places_32" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/test_add_point"
+        android:id="@+id/test_button1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginVertical="@dimen/fab_margin"
         android:layout_gravity="bottom|right"/>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/test_button2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="@dimen/fab_margin"
+        android:layout_gravity="top|right"/>
 
 </FrameLayout>

@@ -7,6 +7,8 @@ import ru.garshishka.walknmap.db.MapPointEntity
 class PointRepository(
     private val dao: MapPointDao
 ) {
+    fun getAll() = dao.getAll().map { it.toDto() }
+
     fun getPointsInArea(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double) =
         dao.findPointsInArea(minLat, maxLat, minLon, maxLon).map {
             it.toDto()

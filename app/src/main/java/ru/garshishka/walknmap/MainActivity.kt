@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.PointF
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +17,7 @@ import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.location.FilteringMode
 import com.yandex.mapkit.map.CameraPosition
+import com.yandex.mapkit.map.LayerIds
 import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.map.PolygonMapObject
 import com.yandex.mapkit.user_location.UserLocationLayer
@@ -128,21 +130,26 @@ class MainActivity : AppCompatActivity() {
         MapKitFactory.initialize(this)
 
         setContentView(binding.root)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setUpMap()
         subscribe()
     }
 
     private fun setUpMap() {
-        mapObjectCollection = binding.mapView.map.mapObjects.addCollection()
-        boundingFogObjectCollection = binding.mapView.map.mapObjects.addCollection()
-        if (locationPermission) {
-            setUpUserPosition()
-        }
-
-        locationManager = MapKitFactory.getInstance().createLocationManager()
-
         binding.mapView.map.apply {
+            mapObjectCollection = this.mapObjects.addCollection()
+            boundingFogObjectCollection = this.mapObjects.addCollection()
+            val sublayerManager = this.sublayerManager
+            sublayerManager.findFirstOf(LayerIds.getMapObjectsLayerId())
+                ?.let { sublayerManager.moveToEnd(it) }
+
+            if (locationPermission) {
+                setUpUserPosition()
+            }
+
+            locationManager = MapKitFactory.getInstance().createLocationManager()
+
             val sharedPref = this@MainActivity.getPreferences(Context.MODE_PRIVATE) ?: return
             val lastLat = sharedPref.getFloat("lastLat", 0.0f).toDouble()
             val lastLon = sharedPref.getFloat("lastLon", 0.0f).toDouble()
@@ -189,8 +196,11 @@ class MainActivity : AppCompatActivity() {
                 placesView.isVisible = !placesView.isVisible
             }
 
-            testAddPoint.setOnClickListener {
-                addUserLocation()
+            testButton1.setOnClickListener {
+                viewModel.deletePointsOnNewSquareSize()
+            }
+            testButton2.setOnClickListener{
+                mapView.isVisible = !mapView.isVisible
             }
         }
 
@@ -243,7 +253,8 @@ class MainActivity : AppCompatActivity() {
                         emptyPoints.forEach {
                             it.toYandexPoint().addSquare(mapObjectCollection, true)
                         }
-                    } else { }
+                    } else {
+                    }
                 }
             } else {
                 //new points get squares

@@ -1,6 +1,5 @@
 package ru.garshishka.walknmap.db
 
-import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
@@ -8,7 +7,7 @@ import androidx.room.Upsert
 @Dao
 interface MapPointDao {
     @Query("SELECT * FROM location_table")
-    fun getAll(): LiveData<List<MapPointEntity>>
+    fun getAll(): List<MapPointEntity>
 
     @Query("SELECT * FROM location_table WHERE lat >= :latMin AND lat <= :latMax AND lon >= :lonMin AND lon <= :lonMax")
     fun findPointsInArea(
