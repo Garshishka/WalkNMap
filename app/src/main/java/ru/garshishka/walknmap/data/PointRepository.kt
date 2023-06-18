@@ -9,7 +9,7 @@ class PointRepository(
 ) {
     fun getAll() = dao.getAll().map { it.toDto() }
 
-    fun getPointsInArea(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double) =
+    suspend fun getPointsInArea(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double) =
         dao.findPointsInArea(minLat, maxLat, minLon, maxLon).map {
             it.toDto()
         }

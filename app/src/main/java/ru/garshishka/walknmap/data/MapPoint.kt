@@ -17,11 +17,17 @@ data class MapPoint(
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other is MapPoint){
-            return (this.lat == other.lat && this.lon == other.lon)
+        return if (other is MapPoint){
+            (this.lat == other.lat && this.lon == other.lon)
         } else {
-            return super.equals(other)
+            super.equals(other)
         }
+    }
+
+    override fun hashCode(): Int {
+        var result = lat.hashCode()
+        result = 31 * result + lon.hashCode()
+        return result
     }
 }
 

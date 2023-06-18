@@ -1,4 +1,4 @@
-package ru.netology.mapmarkers
+package ru.garshishka.walknmap
 
 import android.Manifest
 import android.content.Context
@@ -11,25 +11,25 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.geometry.Polygon
 import com.yandex.mapkit.location.FilteringMode
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.LayerIds
 import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.map.PolygonMapObject
 import com.yandex.mapkit.user_location.UserLocationLayer
-import ru.garshishka.walknmap.DRAW_FOG
-import ru.garshishka.walknmap.R
+import kotlinx.coroutines.launch
 import ru.garshishka.walknmap.data.*
 import ru.garshishka.walknmap.databinding.ActivityMainBinding
 import ru.garshishka.walknmap.di.DependencyContainer
 import ru.garshishka.walknmap.mapListeners.*
 import ru.garshishka.walknmap.ui.OnInteractionListener
 import ru.garshishka.walknmap.ui.PlacesAdapter
-import ru.garshishka.walknmap.ui.makeBoundingPolygon
 import ru.garshishka.walknmap.viewmodel.MainViewModel
 import ru.garshishka.walknmap.viewmodel.ViewModelFactory
 
@@ -192,6 +192,7 @@ class MainActivity : AppCompatActivity() {
                 val cameraPosition = binding.mapView.map.cameraPosition
                 moveMap(cameraPosition.target, cameraPosition.zoom, 0f, 0f)
             }
+
             placeListFab.setOnClickListener {
                 placesView.isVisible = !placesView.isVisible
             }
@@ -199,7 +200,7 @@ class MainActivity : AppCompatActivity() {
             testButton1.setOnClickListener {
                 viewModel.deletePointsOnNewSquareSize()
             }
-            testButton2.setOnClickListener{
+            testButton2.setOnClickListener {
                 mapView.isVisible = !mapView.isVisible
             }
         }
@@ -207,9 +208,14 @@ class MainActivity : AppCompatActivity() {
         val adapter = PlacesAdapter(onInteractionListener)
         binding.placesView.adapter = adapter
 
-        viewModel.pointList.observe(this) { places ->
-            adapter.submitList(places)
-            redrawScreenSquares()
+        viewModel.apply {
+            pointList.observe(this@MainActivity) { places ->
+                adapter.submitList(places)
+                redrawScreenSquares()
+            }
+            loadingMap.observe(this@MainActivity){
+                binding.loading.isVisible = it
+            }
         }
     }
 
@@ -231,11 +237,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun redrawScreenSquares() {
+    private var emptyPointsPrevious = listOf<MapPoint>()
+    private fun redrawScreenSquares() = lifecycleScope.launch {
         viewModel.pointList.value?.let { points ->
             if (DRAW_FOG) {
                 if (points.isEmpty()) {
-                    redrawBoundingBoxFog(boundingFogArea.toZero())
+                    redrawBoundingBoxFog(AreaCoordinates(0.0, 0.0, 0.0, 0.0))
                 } else {
                     if (redrawBoundingBoxFog(
                             AreaCoordinates(
@@ -246,13 +253,18 @@ class MainActivity : AppCompatActivity() {
                             )
                         )
                     ) {
-                        //mapObjectCollection.traverse(RemovePolygonsOutsiderArea(mapObjectCollection,boundingFogArea))
-                        mapObjectCollection.clear()
-                        val emptyPoints =
+                        mapObjectCollection.traverse(
+                            RemovePolygonsOutsiderArea(
+                                mapObjectCollection,
+                                boundingFogArea
+                            )
+                        )
+                        val emptyPointsNow =
                             boundingFogArea.makePointList().filterNot { points.contains(it) }
-                        emptyPoints.forEach {
-                            it.toYandexPoint().addSquare(mapObjectCollection, true)
+                        emptyPointsNow.filterNot { emptyPointsPrevious.contains(it) }.forEach {
+                            viewModel.addSquare(mapObjectCollection, it.toYandexPoint())
                         }
+                        emptyPointsPrevious = emptyPointsNow
                     } else {
                     }
                 }
@@ -267,19 +279,23 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        viewModel.changeLoadingState(false)
     }
 
     private fun redrawBoundingBoxFog(newBoundingArea: AreaCoordinates): Boolean {
-        if (newBoundingArea != boundingFogArea) {
+        return if (newBoundingArea != boundingFogArea) {
             boundingFogArea = newBoundingArea
             if (this::boundingPolygon.isInitialized) {
-                boundingFogObjectCollection.remove(boundingPolygon)
+                boundingPolygon.geometry = Polygon(
+                    boundingPolygon.geometry.outerRing,
+                    boundingFogArea.makeInnerSquareForPolygon()
+                )
+            } else {
+                boundingPolygon = boundingFogArea.makeBoundingPolygon(boundingFogObjectCollection)
             }
-            boundingPolygon =
-                makeBoundingPolygon(boundingFogArea, boundingFogObjectCollection)
-            return true
+            true
         } else {
-            return false
+            false
         }
     }
 
@@ -313,11 +329,11 @@ class MainActivity : AppCompatActivity() {
             cameraRegion.topRight.longitude
         ).roundCoordinates()
         //Returning if the new screen region is different
-        if (mapScreenArea != newMapArea) {
+        return if (mapScreenArea != newMapArea) {
             mapScreenArea = newMapArea
-            return true
+            true
         } else {
-            return false
+            false
         }
     }
 

@@ -7,7 +7,7 @@ import ru.garshishka.walknmap.LON_ADJUSTMENT
 
 fun PolygonMapObject.getCentralPoint(): MapPoint =
     this.geometry.outerRing.points[0].let {
-        return MapPoint(it.latitude - LAT_ADJUSTMENT, it.longitude - LON_ADJUSTMENT)
+        return MapPoint(it.latitude + LAT_ADJUSTMENT, it.longitude + LON_ADJUSTMENT)
     }
 
 

@@ -15,7 +15,7 @@ fun Point.roundCoordinates(): Point {
     )
 }
 
-fun Point.addSquare(mapObjectCollection: MapObjectCollection, isFog : Boolean = false) {
+fun Point.addSquare(mapObjectCollection: MapObjectCollection, isFog : Boolean = false)  {
     val rect = mapObjectCollection.addPolygon(
         this.makeSquarePolygon()
     )

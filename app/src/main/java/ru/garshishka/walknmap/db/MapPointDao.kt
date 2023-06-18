@@ -10,7 +10,7 @@ interface MapPointDao {
     fun getAll(): List<MapPointEntity>
 
     @Query("SELECT * FROM location_table WHERE lat >= :latMin AND lat <= :latMax AND lon >= :lonMin AND lon <= :lonMax")
-    fun findPointsInArea(
+    suspend fun findPointsInArea(
         latMin: Double,
         latMax: Double,
         lonMin: Double,

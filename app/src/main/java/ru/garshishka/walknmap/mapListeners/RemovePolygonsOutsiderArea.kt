@@ -6,8 +6,8 @@ import ru.garshishka.walknmap.data.getCentralPoint
 import ru.garshishka.walknmap.data.isPointOutside
 
 class RemovePolygonsOutsiderArea(
-    val mapObjectCollection: MapObjectCollection,
-    val boundingArea: AreaCoordinates
+    private val mapObjectCollection: MapObjectCollection,
+    private val boundingArea: AreaCoordinates
 ) : MapObjectVisitor {
     override fun onPlacemarkVisited(mapObject: PlacemarkMapObject) {
     }

@@ -1,9 +1,12 @@
 package ru.garshishka.walknmap.data
 
-import ru.garshishka.walknmap.LAT_ADJUSTMENT
-import ru.garshishka.walknmap.LAT_ROUNDER
-import ru.garshishka.walknmap.LON_ADJUSTMENT
-import ru.garshishka.walknmap.LON_ROUNDER
+import android.graphics.Color
+import com.yandex.mapkit.geometry.LinearRing
+import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.geometry.Polygon
+import com.yandex.mapkit.map.MapObjectCollection
+import com.yandex.mapkit.map.PolygonMapObject
+import ru.garshishka.walknmap.*
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -25,8 +28,6 @@ fun AreaCoordinates.roundCoordinates(): AreaCoordinates = AreaCoordinates(
     ceil(this.maxLon * LON_ROUNDER) / LON_ROUNDER
 )
 
-fun AreaCoordinates.toZero() = AreaCoordinates(0.0, 0.0, 0.0, 0.0)
-
 fun AreaCoordinates.makePointList(): List<MapPoint> {
     val list = mutableListOf<MapPoint>()
     if (this != AreaCoordinates(0.0, 0.0, 0.0, 0.0)) {
@@ -45,3 +46,49 @@ fun AreaCoordinates.makePointList(): List<MapPoint> {
 
 fun AreaCoordinates.isPointOutside(point: MapPoint): Boolean =
     this.minLat > point.lat || this.maxLat < point.lat || this.minLon > point.lon || this.maxLon < point.lon
+
+fun AreaCoordinates.makeInnerSquareForPolygon(): List<LinearRing> {
+    return listOf(
+        LinearRing(
+            listOf(
+                Point(
+                    this.maxLat + LAT_ADJUSTMENT,
+                    this.minLon - LON_ADJUSTMENT
+                ),
+                Point(
+                    this.minLat - LAT_ADJUSTMENT,
+                    this.minLon - LON_ADJUSTMENT
+                ),
+                Point(
+                    this.minLat - LAT_ADJUSTMENT,
+                    this.maxLon + LON_ADJUSTMENT
+                ),
+                Point(
+                    this.maxLat + LAT_ADJUSTMENT,
+                    this.maxLon + LON_ADJUSTMENT
+                ),
+            )
+        )
+    )
+}
+
+fun AreaCoordinates.makeBoundingPolygon(
+    mapObjectCollection: MapObjectCollection
+): PolygonMapObject {
+    return mapObjectCollection.addPolygon(
+        Polygon(
+            LinearRing(
+                listOf(
+                    Point(TOP_LAT, LEFT_LON),
+                    Point(BOTTOM_LAT, LEFT_LON),
+                    Point(BOTTOM_LAT, RIGHT_LON),
+                    Point(TOP_LAT, RIGHT_LON)
+                )
+            ),
+            this.makeInnerSquareForPolygon()
+        )
+    ).also {
+        it.fillColor = FOG_COLOR
+        it.strokeColor = Color.TRANSPARENT
+    }
+}
