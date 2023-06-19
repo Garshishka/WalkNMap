@@ -7,10 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.MapObjectCollection
 import kotlinx.coroutines.launch
-import ru.garshishka.walknmap.data.AreaCoordinates
-import ru.garshishka.walknmap.data.MapPoint
-import ru.garshishka.walknmap.data.PointRepository
-import ru.garshishka.walknmap.data.addSquare
+import ru.garshishka.walknmap.data.*
 import kotlin.math.round
 
 private val emptyPoints = mutableListOf<MapPoint>()
@@ -52,6 +49,10 @@ class MainViewModel(private val repository: PointRepository) : ViewModel() {
 
     fun addSquare(mapObjectCollection: MapObjectCollection, point: Point) = viewModelScope.launch {
         point.addSquare(mapObjectCollection, true)
+    }
+
+    fun addVerticalLine(mapObjectCollection: MapObjectCollection, topPoint: Point, bottomPoint: Point) = viewModelScope.launch {
+        bottomPoint.addVerticalLine(mapObjectCollection,topPoint)
     }
 
     fun deletePointsOnNewSquareSize() =

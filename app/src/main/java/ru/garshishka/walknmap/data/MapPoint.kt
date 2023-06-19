@@ -8,6 +8,7 @@ import kotlin.math.round
 
 //Main data class for storing information about visited squares
 data class MapPoint(
+    //FIXME CHANGE AROUND AND CHANGE EVERYTHING AROUND
     val lat: Double,
     val lon: Double,
     val timeAdded: OffsetDateTime = OffsetDateTime.now(),

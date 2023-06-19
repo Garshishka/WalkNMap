@@ -261,10 +261,13 @@ class MainActivity : AppCompatActivity() {
                         )
                         val emptyPointsNow =
                             boundingFogArea.makePointList().filterNot { points.contains(it) }
-                        emptyPointsNow.filterNot { emptyPointsPrevious.contains(it) }.forEach {
-                            viewModel.addSquare(mapObjectCollection, it.toYandexPoint())
-                        }
+                        val k = emptyPointsNow.filterNot { emptyPointsPrevious.contains(it) }//.sortedByDescending { it.lon }
+                        k.addVerticalLinesOfFog(mapObjectCollection,viewModel)
+//                        emptyPointsNow.filterNot { emptyPointsPrevious.contains(it) }.forEach {
+//                            viewModel.addSquare(mapObjectCollection, it.toYandexPoint())
+//                        }
                         emptyPointsPrevious = emptyPointsNow
+                        println(emptyPointsNow.size)
                     } else {
                     }
                 }
