@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
+import com.yandex.mapkit.geometry.LinearRing
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.geometry.Polygon
 import com.yandex.mapkit.location.FilteringMode
@@ -158,6 +159,7 @@ class MainActivity : AppCompatActivity() {
             addCameraListener(cameraListener)
             addInputListener(mapInputListener)
         }
+
     }
 
     private fun setUpUserPosition() {
@@ -213,7 +215,7 @@ class MainActivity : AppCompatActivity() {
                 adapter.submitList(places)
                 redrawScreenSquares()
             }
-            loadingMap.observe(this@MainActivity){
+            loadingMap.observe(this@MainActivity) {
                 binding.loading.isVisible = it
             }
         }
@@ -253,25 +255,51 @@ class MainActivity : AppCompatActivity() {
                             )
                         )
                     ) {
-                        mapObjectCollection.traverse(
-                            RemovePolygonsOutsiderArea(
-                                mapObjectCollection,
-                                boundingFogArea
+//                        mapObjectCollection.traverse(
+//                            RemovePolygonsOutsiderArea(
+//                                mapObjectCollection,
+//                                boundingFogArea
+//                            )
+//                        )
+//                        val emptyPointsNow =
+//                            boundingFogArea.makePointList().filterNot { points.contains(it) }
+
+
+                        val rings = points.makeInsidePolygonList()
+                        println(rings.size)
+
+                        boundingFogObjectCollection.clear()
+
+                        boundingPolygon = boundingFogObjectCollection.addPolygon(
+                            Polygon(
+                                LinearRing(
+                                    listOf(
+                                        Point(mapScreenArea.maxLat+1, mapScreenArea.minLon-1),
+                                        Point(mapScreenArea.minLat-1, mapScreenArea.minLon-1),
+                                        Point(mapScreenArea.minLat-1, mapScreenArea.maxLon+1),
+                                        Point(mapScreenArea.maxLat+1, mapScreenArea.maxLon+1),
+                                    )
+                                ), rings
                             )
                         )
-                        val emptyPointsNow =
-                            boundingFogArea.makePointList().filterNot { points.contains(it) }
-                        val k = emptyPointsNow.filterNot { emptyPointsPrevious.contains(it) }//.sortedByDescending { it.lon }
-                        k.addVerticalLinesOfFog(mapObjectCollection,viewModel)
+
+//                        val newPoly = Polygon(
+//                            boundingPolygon.geometry.outerRing,
+//                            rings
+//                        )
+//                        boundingPolygon.geometry = newPoly
+
+
 //                        emptyPointsNow.filterNot { emptyPointsPrevious.contains(it) }.forEach {
 //                            viewModel.addSquare(mapObjectCollection, it.toYandexPoint())
 //                        }
-                        emptyPointsPrevious = emptyPointsNow
-                        println(emptyPointsNow.size)
+                        // emptyPointsPrevious = emptyPointsNow
                     } else {
                     }
                 }
             } else {
+
+
                 //new points get squares
                 points.filterNot { viewModel.oldPointList.contains(it) }.forEach {
                     it.toYandexPoint().addSquare(mapObjectCollection)

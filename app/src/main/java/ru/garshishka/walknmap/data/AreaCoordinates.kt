@@ -22,10 +22,14 @@ data class AreaCoordinates(
 }
 
 fun AreaCoordinates.roundCoordinates(): AreaCoordinates = AreaCoordinates(
-    floor(this.minLat * LAT_ROUNDER) / LAT_ROUNDER,
-    ceil(this.maxLat * LAT_ROUNDER) / LAT_ROUNDER,
-    floor(this.minLon * LON_ROUNDER) / LON_ROUNDER,
-    ceil(this.maxLon * LON_ROUNDER) / LON_ROUNDER
+//    floor(this.minLat * LAT_ROUNDER) / LAT_ROUNDER,
+//    ceil(this.maxLat * LAT_ROUNDER) / LAT_ROUNDER,
+//    floor(this.minLon * LON_ROUNDER) / LON_ROUNDER,
+//    ceil(this.maxLon * LON_ROUNDER) / LON_ROUNDER
+    ceil(this.minLat * LAT_ROUNDER) / LAT_ROUNDER,
+    floor(this.maxLat * LAT_ROUNDER) / LAT_ROUNDER,
+    ceil(this.minLon * LON_ROUNDER) / LON_ROUNDER,
+    floor(this.maxLon * LON_ROUNDER) / LON_ROUNDER
 )
 
 fun AreaCoordinates.makePointList(): List<MapPoint> {
@@ -89,6 +93,6 @@ fun AreaCoordinates.makeBoundingPolygon(
         )
     ).also {
         it.fillColor = FOG_COLOR
-        it.strokeColor = Color.TRANSPARENT
+        it.strokeColor = Color.argb(200, 255, 15, 255)//Color.TRANSPARENT
     }
 }
