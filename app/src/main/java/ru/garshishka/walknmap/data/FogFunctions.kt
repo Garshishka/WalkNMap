@@ -70,9 +70,9 @@ fun List<MapPoint>.makeInsidePolygonList(): List<LinearRing> {
 
 fun MutableList<MapPolygon>.mergePolygonsInList() {
     val iterator = this.listIterator()
+
     while (iterator.hasNext()) {
         val polygon = iterator.next()
-//    this.forEach { polygon ->
         var distinct = false
         //distinct help us find not connected squares
         while (!distinct) {
@@ -80,13 +80,41 @@ fun MutableList<MapPolygon>.mergePolygonsInList() {
             this.filterNot { it == polygon }.forEach { otherPolygon ->
                 val samePoints = polygon.points.intersect(otherPolygon.points)
                 //we get the same points between two polygons and delete them
-                if (samePoints.size > 1) {
-                    iterator.set(polygon.mergePolygons(otherPolygon, samePoints))
+                if (samePoints.checkIfFullConnection(polygon,otherPolygon)) {
+                    polygon.mergePolygons(otherPolygon, samePoints)
+                    iterator.remove()
+                    iterator.next()
+                    iterator.set(polygon)
                     //add what points left of other polygon delete other polygon
-                    this -= otherPolygon
                     distinct = false
                 }
             }
         }
     }
+}
+
+fun Set<MapPoint>.checkIfFullConnection(first: MapPolygon, second: MapPolygon): Boolean {
+    when(this.size){
+        0 -> return false
+        1 -> {
+            val connectedPoint = this.first()
+            val firstLatAdjacent = first.points.first { it.lat == connectedPoint.lat && it.lon != connectedPoint.lon }
+            val secondLatAdjacent = second.points.first { it.lat == connectedPoint.lat && it.lon != connectedPoint.lon }
+            if (oneOrAnotherPointIsBetween(connectedPoint.lon, firstLatAdjacent.lon, secondLatAdjacent.lon)){
+                return true
+            }
+            val firstLonAdjacent = first.points.first { it.lat != connectedPoint.lat && it.lon == connectedPoint.lon }
+            val secondLonAdjacent = second.points.first { it.lat != connectedPoint.lat && it.lon == connectedPoint.lon }
+            if (oneOrAnotherPointIsBetween(connectedPoint.lat, firstLonAdjacent.lat, secondLonAdjacent.lat)){
+                return true
+            }
+            return false
+        }
+        else -> return true
+    }
+}
+
+fun oneOrAnotherPointIsBetween(main : Double, first: Double, second: Double) : Boolean{
+    return (main>first && first>second)||(main>second && second>first)
+            ||(main<first && first<second)||(main<second && second<first)
 }

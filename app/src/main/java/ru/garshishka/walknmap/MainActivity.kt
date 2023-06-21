@@ -200,7 +200,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             testButton1.setOnClickListener {
-                viewModel.deletePointsOnNewSquareSize()
+                //TODO DELETE THIS FUNCTION
+                testTestTesr()
             }
             testButton2.setOnClickListener {
                 mapView.isVisible = !mapView.isVisible
@@ -265,8 +266,15 @@ class MainActivity : AppCompatActivity() {
 //                            boundingFogArea.makePointList().filterNot { points.contains(it) }
 
 
-                        val rings = points.makeInsidePolygonList()
-                        println(rings.size)
+                        //val rings = points.makeInsidePolygonList()
+                        //println(rings.size)
+
+                        val polygonList = points.map { it.makeMapPolygon() }.toMutableList()
+                        polygonList.mergePolygonsInList()
+                        println("p $polygonList")
+                        val sortedList = polygonList.map { it.sortPointsIntoDrawablePolygon() }
+                        println("s $sortedList")
+                        val innerRings = sortedList.map { it.makeLinearRing() }
 
                         boundingFogObjectCollection.clear()
 
@@ -279,7 +287,7 @@ class MainActivity : AppCompatActivity() {
                                         Point(mapScreenArea.minLat-1, mapScreenArea.maxLon+1),
                                         Point(mapScreenArea.maxLat+1, mapScreenArea.maxLon+1),
                                     )
-                                ), rings
+                                ), innerRings
                             )
                         )
 

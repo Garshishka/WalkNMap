@@ -1,7 +1,9 @@
 package ru.garshishka.walknmap.data
 
 import com.yandex.mapkit.geometry.Point
+import ru.garshishka.walknmap.LAT_ADJUSTMENT
 import ru.garshishka.walknmap.LAT_ROUNDER
+import ru.garshishka.walknmap.LON_ADJUSTMENT
 import ru.garshishka.walknmap.LON_ROUNDER
 import java.time.OffsetDateTime
 import kotlin.math.round
@@ -11,13 +13,13 @@ data class MapPoint(
     val lat: Double,
     val lon: Double,
     val timeAdded: OffsetDateTime = OffsetDateTime.now(),
-){
+) {
     override fun toString(): String {
         return "$lat | $lon"
     }
 
     override fun equals(other: Any?): Boolean {
-        return if (other is MapPoint){
+        return if (other is MapPoint) {
             (this.lat == other.lat && this.lon == other.lon)
         } else {
             super.equals(other)
@@ -31,13 +33,30 @@ data class MapPoint(
     }
 }
 
-fun MapPoint.toYandexPoint(): Point{
+fun MapPoint.toYandexPoint(): Point {
     return Point(this.lat, this.lon)
 }
 
 fun MapPoint.roundCoordinates(): MapPoint {
     return MapPoint(
-        round(this.lat* LAT_ROUNDER) / LAT_ROUNDER,
+        round(this.lat * LAT_ROUNDER) / LAT_ROUNDER,
         round(this.lon * LON_ROUNDER) / LON_ROUNDER
+    )
+}
+
+fun MapPoint.makeMapPolygon(): MapPolygon {
+    val latNewRounder = 2 * LAT_ROUNDER
+    val lonNewRounder = 2 * LON_ROUNDER
+    val top = round((this.lat + LAT_ADJUSTMENT) * latNewRounder) / latNewRounder
+    val bottom = round((this.lat - LAT_ADJUSTMENT) * latNewRounder) / latNewRounder
+    val right = round((this.lon + LON_ADJUSTMENT) * lonNewRounder) / lonNewRounder
+    val left = round((this.lon - LON_ADJUSTMENT) * lonNewRounder) / lonNewRounder
+    return MapPolygon(
+        mutableSetOf(
+            MapPoint(bottom, left),
+            MapPoint(bottom, right),
+            MapPoint(top, right),
+            MapPoint(top, left)
+        )
     )
 }
