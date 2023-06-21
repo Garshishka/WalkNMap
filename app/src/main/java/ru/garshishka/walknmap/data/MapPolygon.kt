@@ -8,82 +8,28 @@ data class MapPolygon(
     }
 }
 
-fun MapPolygon.mergePolygons(otherPolygon: MapPolygon, sharedPoints: Set<MapPoint>) {
+fun MapPolygon.mergePolygons(otherPolygon: MapPolygon, sharedPoints: Set<MapPoint>) : MapPolygon {
+    val newPolygon = MapPolygon(this.points)
     //we add other points from the second polygon
-    this.points += otherPolygon.points
+    newPolygon.points += otherPolygon.points
     //and we remove same points
-    this.points -= sharedPoints
+    newPolygon.points -= sharedPoints
+    return newPolygon
 }
 
-fun mergeTesting() {
-    val polygon1: MapPolygon = MapPolygon(
-        mutableSetOf(
-            MapPoint(0.0, 0.0),
-            MapPoint(1.0, 0.0),
-            MapPoint(1.0, 1.0),
-            MapPoint(0.0, 1.0),
-        )
-    )
-    println(polygon1)
-    val polygon2: MapPolygon = MapPolygon(
-        mutableSetOf(
-            MapPoint(0.0, 1.0),
-            MapPoint(1.0, 1.0),
-            MapPoint(1.0, 2.0),
-            MapPoint(0.0, 2.0),
-        )
-    )
-    val polygon3: MapPolygon = MapPolygon(
-        mutableSetOf(
-            MapPoint(0.0, 2.0),
-            MapPoint(1.0, 2.0),
-            MapPoint(1.0, 3.0),
-            MapPoint(0.0, 3.0),
-        )
-    )
-    val polygon4: MapPolygon = MapPolygon(
-        mutableSetOf(
-            MapPoint(1.0, 2.0),
-            MapPoint(2.0, 2.0),
-            MapPoint(2.0, 3.0),
-            MapPoint(1.0, 3.0),
-        )
-    )
-    val polygon5: MapPolygon = MapPolygon(
-        mutableSetOf(
-            MapPoint(2.0, 2.0),
-            MapPoint(3.0, 2.0),
-            MapPoint(3.0, 3.0),
-            MapPoint(2.0, 3.0),
-        )
-    )
-    val polygon6: MapPolygon = MapPolygon(
-        mutableSetOf(
-            MapPoint(2.0, 1.0),
-            MapPoint(3.0, 1.0),
-            MapPoint(3.0, 2.0),
-            MapPoint(2.0, 2.0),
-        )
-    )
-
-    val polygonList = mutableListOf(polygon1, polygon2, polygon3, polygon4, polygon5, polygon6)
-    println(polygonList)
-
-    polygonList.forEach { polygon ->
-        var distinct = false
-        while (!distinct) {
-            distinct = true
-            polygonList.filterNot { it == polygon }.forEach { otherPolygon ->
-                val samePoints = polygon.points.intersect(otherPolygon.points)
-                if (!samePoints.isEmpty()) {
-                    polygon.mergePolygons(otherPolygon, samePoints)
-                    polygonList -= otherPolygon
-                    distinct = false
-                    print("got $polygon")
-                }
-            }
-        }
+fun MapPolygon.sortPointsIntoDrawablePolygon(): MapPolygon {
+    val sortedSet = mutableSetOf<MapPoint>()
+    var lastInSorted = this.points.first()// this.points.elementAt(0)
+    sortedSet.add(lastInSorted)
+    //we add the first point from the polygon into new set
+    this.points.remove(lastInSorted)
+    while (this.points.isNotEmpty()) {
+        //when we have a point in set that have same lat or lon - we put it in a new set and delete from old
+        this.points.first { lastInSorted.lat == it.lat || lastInSorted.lon == it.lon }
+            .let { lastInSorted = it }
+        sortedSet.add(lastInSorted)
+        this.points.remove(lastInSorted)
+        //and we do it until we spend all our points
     }
-
-    println(polygonList)
+    return MapPolygon(sortedSet)
 }

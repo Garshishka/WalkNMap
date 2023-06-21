@@ -26,6 +26,7 @@ fun AreaCoordinates.roundCoordinates(): AreaCoordinates = AreaCoordinates(
 //    ceil(this.maxLat * LAT_ROUNDER) / LAT_ROUNDER,
 //    floor(this.minLon * LON_ROUNDER) / LON_ROUNDER,
 //    ceil(this.maxLon * LON_ROUNDER) / LON_ROUNDER
+    //TODO CHANGE BACK
     ceil(this.minLat * LAT_ROUNDER) / LAT_ROUNDER,
     floor(this.maxLat * LAT_ROUNDER) / LAT_ROUNDER,
     ceil(this.minLon * LON_ROUNDER) / LON_ROUNDER,
