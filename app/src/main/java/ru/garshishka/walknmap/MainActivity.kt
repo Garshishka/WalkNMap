@@ -305,7 +305,7 @@ class MainActivity : AppCompatActivity() {
                     } else {
                     }
                 }
-            } else {
+           // } else {
 
 
                 //new points get squares

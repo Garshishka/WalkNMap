@@ -69,43 +69,63 @@ fun List<MapPoint>.makeInsidePolygonList(): List<LinearRing> {
 }
 
 fun MutableList<MapPolygon>.mergePolygonsInList() {
-    val iterator = this.listIterator()
-
-    while (iterator.hasNext()) {
-        val polygon = iterator.next()
+    var iterator = this.listIterator()
+    var runTrough = 0
+    while (runTrough<this.size) {
         var distinct = false
         //distinct help us find not connected squares
         while (!distinct) {
+            if (!iterator.hasNext()) {
+                iterator = this.listIterator()
+            }
+            val polygon = iterator.next()
             distinct = true
             this.filterNot { it == polygon }.forEach { otherPolygon ->
                 val samePoints = polygon.points.intersect(otherPolygon.points)
                 //we get the same points between two polygons and delete them
-                if (samePoints.checkIfFullConnection(polygon,otherPolygon)) {
+                if (samePoints.checkIfFullConnection(polygon, otherPolygon)) {
                     polygon.mergePolygons(otherPolygon, samePoints)
                     iterator.remove()
-                    iterator.next()
-                    iterator.set(polygon)
                     //add what points left of other polygon delete other polygon
                     distinct = false
+                } else {
+                    iterator.set(otherPolygon)
                 }
+                iterator.next()
+                iterator.set(polygon)
             }
         }
+        runTrough++
     }
 }
 
 fun Set<MapPoint>.checkIfFullConnection(first: MapPolygon, second: MapPolygon): Boolean {
-    when(this.size){
+    when (this.size) {
         0 -> return false
         1 -> {
             val connectedPoint = this.first()
-            val firstLatAdjacent = first.points.first { it.lat == connectedPoint.lat && it.lon != connectedPoint.lon }
-            val secondLatAdjacent = second.points.first { it.lat == connectedPoint.lat && it.lon != connectedPoint.lon }
-            if (oneOrAnotherPointIsBetween(connectedPoint.lon, firstLatAdjacent.lon, secondLatAdjacent.lon)){
+            val firstLatAdjacent =
+                first.points.first { it.lat == connectedPoint.lat && it.lon != connectedPoint.lon }
+            val secondLatAdjacent =
+                second.points.first { it.lat == connectedPoint.lat && it.lon != connectedPoint.lon }
+            if (oneOrAnotherPointIsBetween(
+                    connectedPoint.lon,
+                    firstLatAdjacent.lon,
+                    secondLatAdjacent.lon
+                )
+            ) {
                 return true
             }
-            val firstLonAdjacent = first.points.first { it.lat != connectedPoint.lat && it.lon == connectedPoint.lon }
-            val secondLonAdjacent = second.points.first { it.lat != connectedPoint.lat && it.lon == connectedPoint.lon }
-            if (oneOrAnotherPointIsBetween(connectedPoint.lat, firstLonAdjacent.lat, secondLonAdjacent.lat)){
+            val firstLonAdjacent =
+                first.points.first { it.lat != connectedPoint.lat && it.lon == connectedPoint.lon }
+            val secondLonAdjacent =
+                second.points.first { it.lat != connectedPoint.lat && it.lon == connectedPoint.lon }
+            if (oneOrAnotherPointIsBetween(
+                    connectedPoint.lat,
+                    firstLonAdjacent.lat,
+                    secondLonAdjacent.lat
+                )
+            ) {
                 return true
             }
             return false
@@ -114,7 +134,7 @@ fun Set<MapPoint>.checkIfFullConnection(first: MapPolygon, second: MapPolygon): 
     }
 }
 
-fun oneOrAnotherPointIsBetween(main : Double, first: Double, second: Double) : Boolean{
-    return (main>first && first>second)||(main>second && second>first)
-            ||(main<first && first<second)||(main<second && second<first)
+fun oneOrAnotherPointIsBetween(main: Double, first: Double, second: Double): Boolean {
+    return (main > first && first > second) || (main > second && second > first)
+            || (main < first && first < second) || (main < second && second < first)
 }

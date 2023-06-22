@@ -1,10 +1,7 @@
 package ru.garshishka.walknmap.data
 
 import com.yandex.mapkit.geometry.Point
-import ru.garshishka.walknmap.LAT_ADJUSTMENT
-import ru.garshishka.walknmap.LAT_ROUNDER
-import ru.garshishka.walknmap.LON_ADJUSTMENT
-import ru.garshishka.walknmap.LON_ROUNDER
+import ru.garshishka.walknmap.*
 import java.time.OffsetDateTime
 import kotlin.math.round
 
@@ -59,4 +56,35 @@ fun MapPoint.makeMapPolygon(): MapPolygon {
             MapPoint(top, left)
         )
     )
+}
+
+fun MapPoint.lessThenOtherInPolygon(
+    other: MapPoint,
+    centerLat: Double,
+    centerLon: Double
+): Boolean {
+    val thisLat = round((this.lat - centerLat) * DOUBLE_LAT_ROUNDER) / DOUBLE_LAT_ROUNDER
+    val thisLon = round((this.lon - centerLon) * DOUBLE_LON_ROUNDER) / DOUBLE_LON_ROUNDER
+    val otherLat = round((other.lat - centerLat) * DOUBLE_LAT_ROUNDER) / DOUBLE_LAT_ROUNDER
+    val otherLon = round((other.lon - centerLon) * DOUBLE_LON_ROUNDER) / DOUBLE_LON_ROUNDER
+
+    if (thisLat >= 0 && otherLat < 0)
+        return true
+    if (thisLat < 0 && otherLat >= 0)
+        return false
+    if (thisLat == 0.0 && otherLat == 0.0) {
+        if (thisLon >= 0 || otherLon >= 0) {
+            return this.lon > other.lon
+        }
+        return other.lon > this.lon
+    }
+
+    val crossProductOfVectors = (thisLat) * (otherLon) - (otherLat) * (thisLon)
+    if (crossProductOfVectors > 0) return false
+    if (crossProductOfVectors < 0) return true
+
+    val distanceThis = thisLat * thisLat + thisLon * thisLon
+    val distanceOther = otherLat * otherLat + otherLon * otherLon
+
+    return distanceThis > distanceOther
 }
