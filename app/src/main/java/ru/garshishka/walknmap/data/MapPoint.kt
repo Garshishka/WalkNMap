@@ -42,12 +42,10 @@ fun MapPoint.roundCoordinates(): MapPoint {
 }
 
 fun MapPoint.makeMapPolygon(): MapPolygon {
-    val latNewRounder = 2 * LAT_ROUNDER
-    val lonNewRounder = 2 * LON_ROUNDER
-    val top = round((this.lat + LAT_ADJUSTMENT) * latNewRounder) / latNewRounder
-    val bottom = round((this.lat - LAT_ADJUSTMENT) * latNewRounder) / latNewRounder
-    val right = round((this.lon + LON_ADJUSTMENT) * lonNewRounder) / lonNewRounder
-    val left = round((this.lon - LON_ADJUSTMENT) * lonNewRounder) / lonNewRounder
+    val top = round((this.lat + LAT_ADJUSTMENT) * DOUBLE_LAT_ROUNDER) / DOUBLE_LAT_ROUNDER
+    val bottom = round((this.lat - LAT_ADJUSTMENT) * DOUBLE_LAT_ROUNDER) / DOUBLE_LAT_ROUNDER
+    val right = round((this.lon + LON_ADJUSTMENT) * DOUBLE_LON_ROUNDER) / DOUBLE_LON_ROUNDER
+    val left = round((this.lon - LON_ADJUSTMENT) * DOUBLE_LON_ROUNDER) / DOUBLE_LON_ROUNDER
     return MapPolygon(
         mutableSetOf(
             MapPoint(bottom, left),
@@ -58,33 +56,57 @@ fun MapPoint.makeMapPolygon(): MapPolygon {
     )
 }
 
-fun MapPoint.lessThenOtherInPolygon(
-    other: MapPoint,
-    centerLat: Double,
-    centerLon: Double
-): Boolean {
-    val thisLat = round((this.lat - centerLat) * DOUBLE_LAT_ROUNDER) / DOUBLE_LAT_ROUNDER
-    val thisLon = round((this.lon - centerLon) * DOUBLE_LON_ROUNDER) / DOUBLE_LON_ROUNDER
-    val otherLat = round((other.lat - centerLat) * DOUBLE_LAT_ROUNDER) / DOUBLE_LAT_ROUNDER
-    val otherLon = round((other.lon - centerLon) * DOUBLE_LON_ROUNDER) / DOUBLE_LON_ROUNDER
-
-    if (thisLat >= 0 && otherLat < 0)
-        return true
-    if (thisLat < 0 && otherLat >= 0)
-        return false
-    if (thisLat == 0.0 && otherLat == 0.0) {
-        if (thisLon >= 0 || otherLon >= 0) {
-            return this.lon > other.lon
-        }
-        return other.lon > this.lon
-    }
-
-    val crossProductOfVectors = (thisLat) * (otherLon) - (otherLat) * (thisLon)
-    if (crossProductOfVectors > 0) return false
-    if (crossProductOfVectors < 0) return true
-
-    val distanceThis = thisLat * thisLat + thisLon * thisLon
-    val distanceOther = otherLat * otherLat + otherLon * otherLon
-
-    return distanceThis > distanceOther
+fun MapPoint.distanceToOtherPoint(other: MapPoint): Double {
+    val distLat = ((this.lat - other.lat) * DOUBLE_LAT_ROUNDER) / DOUBLE_LAT_ROUNDER
+    val distLon = ((this.lon - other.lon) * DOUBLE_LON_ROUNDER) / DOUBLE_LON_ROUNDER
+    return (distLat * distLat) + (distLon * distLon)
 }
+
+fun MapPoint.checkIfPointNotBehindAlreadyPlacedPoint(
+    sortedSet: Set<MapPoint>,
+    anchorPoint: MapPoint,
+    lonMovement: Boolean,
+): Boolean {
+    //we take sorted points and find ones that are on this movement axis
+    sortedSet.filter {
+        if (lonMovement) {
+            it.lat == this.lat
+        } else {
+            it.lon == this.lon
+        }
+    }
+        .forEach { sortedPoint ->
+            if (this.checkIfBehindPoint(anchorPoint, sortedPoint, lonMovement)) {
+                return false
+            }
+        }
+    return true
+}
+
+fun MapPoint.checkIfBehindPoint(
+    anchorPoint: MapPoint,
+    otherPoint: MapPoint,
+    lonMovement: Boolean
+): Boolean {
+    if(lonMovement){
+        if (oneOrAnotherPointIsBetween(
+                anchorPoint.lon,
+                this.lon,
+                otherPoint.lon
+            )
+        ) {
+            return true
+        }
+    } else{
+        if (oneOrAnotherPointIsBetween(
+                anchorPoint.lat,
+                this.lat,
+                otherPoint.lat
+            )
+        ) {
+            return true
+        }
+    }
+    return false
+}
+

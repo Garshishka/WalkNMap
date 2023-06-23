@@ -19,36 +19,49 @@ fun MapPolygon.mergePolygons(otherPolygon: MapPolygon, sharedPoints: Set<MapPoin
 
 fun MapPolygon.sortPointsIntoDrawablePolygon(): MapPolygon {
     val sortedSet = mutableSetOf<MapPoint>()
-    var lastInSorted = this.points.first()// this.points.elementAt(0)
+    var lastInSorted = this.points.first()
+    var lonMovement = true //first we move horizontal
     sortedSet.add(lastInSorted)
     //we add the first point from the polygon into new set
     this.points.remove(lastInSorted)
+    //and remove it from unsorted list
     while (this.points.isNotEmpty()) {
-        //when we have a point in set that have same lat or lon - we put it in a new set and delete from old
-        this.points.first { lastInSorted.lat == it.lat || lastInSorted.lon == it.lon }
-            .let { lastInSorted = it }// ?: println("ALLO WTF ${this.points} and $sortedSet")
+        //we find the points in usorted polygon that lie oh the same axis as our movement now
+        val pointsOnTheSameAxis =
+            this.points.filter {
+                if (lonMovement) {
+                    it.lat == lastInSorted.lat
+                } else {
+                    it.lon == lastInSorted.lon
+                }
+            }
+        if (pointsOnTheSameAxis.size == 1) {
+            //if we get only one point - that's it
+            lastInSorted = pointsOnTheSameAxis.first()
+        } else {
+            //if he have some points - we sort them by distance to the previous point
+            pointsOnTheSameAxis.sortedBy { it.distanceToOtherPoint(lastInSorted) }
+            //and we find closest point not behind some other already sorted point
+                .first {
+                    it.checkIfPointNotBehindAlreadyPlacedPoint(
+                        sortedSet,
+                        lastInSorted,
+                        lonMovement
+                    )
+                }
+                .let { lastInSorted = it }
+        }
+        //we add found point to sorted list, remove it from the usorted list and change movement axis
         sortedSet.add(lastInSorted)
         this.points.remove(lastInSorted)
+        lonMovement = !lonMovement
         //and we do it until we spend all our points
     }
     return MapPolygon(sortedSet)
 }
 
-fun MapPolygon.makeLinearRing() : LinearRing {
+fun MapPolygon.makeLinearRing(): LinearRing {
     val list = this.points.map { it.toYandexPoint() }.toMutableList()
     list.add(this.points.first().toYandexPoint())
     return LinearRing(list)
-}
-
-fun MapPolygon.sortPointsClockwise() : MapPolygon{
-    var centerLat = 0.0
-    var centerLon = 0.0
-    this.points.forEach {
-        centerLat += it.lat
-        centerLon += it.lon
-    }
-    centerLat = centerLat/this.points.size
-    centerLon = centerLon/this.points.size
-
-    return MapPolygon()
 }

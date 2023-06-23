@@ -3,36 +3,36 @@ package ru.garshishka.walknmap.data
 fun testTestTesr() {
     //TODO DELETE
 
-    val polygon1 = MapPolygon(
+    val polygon1: MapPolygon = MapPolygon(
         mutableSetOf(
             MapPoint(0.0, 0.0),
+            MapPoint(0.0, 1.0),
+            MapPoint(1.0, 1.0),
             MapPoint(1.0, 0.0),
-            MapPoint(1.0, 1.0),
-            MapPoint(0.0, 1.0),
         )
     )
-    val polygon2 = MapPolygon(
+    val polygon2: MapPolygon = MapPolygon(
         mutableSetOf(
             MapPoint(0.0, 1.0),
+            MapPoint(0.0, 2.0),
+            MapPoint(1.0, 2.0),
             MapPoint(1.0, 1.0),
-            MapPoint(1.0, 2.0),
-            MapPoint(0.0, 2.0),
         )
     )
-    val polygon3 = MapPolygon(
+    val polygon3: MapPolygon = MapPolygon(
         mutableSetOf(
-            MapPoint(0.0, 2.0),
-            MapPoint(1.0, 2.0),
-            MapPoint(1.0, 3.0),
-            MapPoint(0.0, 3.0),
-        )
-    )
-    val polygon4 = MapPolygon(
-        mutableSetOf(
+            MapPoint(1.0, 1.0),
             MapPoint(1.0, 2.0),
             MapPoint(2.0, 2.0),
-            MapPoint(2.0, 3.0),
+            MapPoint(2.0, 1.0),
+        )
+    )
+    val polygon4: MapPolygon = MapPolygon(
+        mutableSetOf(
+            MapPoint(1.0, 2.0),
             MapPoint(1.0, 3.0),
+            MapPoint(2.0, 3.0),
+            MapPoint(2.0, 2.0),
         )
     )
     val polygon5 = MapPolygon(
@@ -89,11 +89,11 @@ fun testTestTesr() {
         polygon2,
         polygon3,
         polygon4,
-        polygon5,
-        polygon6,
-        polygon7,
-        polygon8,
-        polygon9,
+//        polygon5,
+//        polygon6,
+//        polygon7,
+//        polygon8,
+//        polygon9,
       //  polygon10
     )
 

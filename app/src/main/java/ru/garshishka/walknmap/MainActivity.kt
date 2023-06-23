@@ -148,6 +148,7 @@ class MainActivity : AppCompatActivity() {
             if (locationPermission) {
                 setUpUserPosition()
             }
+            isRotateGesturesEnabled = false
 
             locationManager = MapKitFactory.getInstance().createLocationManager()
 
