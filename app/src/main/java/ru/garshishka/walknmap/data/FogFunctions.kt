@@ -39,7 +39,7 @@ fun List<MapPoint>.addVerticalLinesOfFog(
     }
 }
 
-fun List<MapPoint>.makePointMatrix(minPoint: MapPoint,rows: Int, cols: Int): Array<IntArray> {
+fun List<MapPoint>.makePointMatrix(minPoint: MapPoint, rows: Int, cols: Int): Array<IntArray> {
     return Array(rows + 2) { r ->
         IntArray(cols + 2) { c ->
             if (r == 0 || c == 0 || r == rows + 1 || c == cols + 1) {
@@ -64,46 +64,84 @@ fun List<MapPoint>.makePointMatrix(minPoint: MapPoint,rows: Int, cols: Int): Arr
 fun Array<IntArray>.makeWallsMatrix(rows: Int, cols: Int): Array<IntArray> =
     Array(rows + 2) { r ->
         IntArray(cols + 2) { c ->
-            if(r==rows+1 || c == cols+1){
+            if (r == rows + 1 || c == cols + 1) {
                 0
-            }else {
-                if (this[r][c] != this[r][c + 1]) {2} else {0} +
-                        if (this[r][c] != this[r + 1][c]) {1} else {0}
+            } else {
+                if (this[r][c] != this[r][c + 1]) {
+                    2
+                } else {
+                    0
+                } +
+                        if (this[r][c] != this[r + 1][c]) {
+                            1
+                        } else {
+                            0
+                        }
             }
         }
     }
 
-fun Array<IntArray>.makePolygonPointsLists(rows: Int, cols: Int): MutableList<MutableList<Pair<Int,Int>>>{
-    val result = mutableListOf<MutableList<Pair<Int, Int>>>()
+fun Array<IntArray>.makePolygonPointsLists(
+    rows: Int,
+    cols: Int
+): MutableList<List<Pair<Int, Int>>> {
+    val result = mutableListOf<List<Pair<Int, Int>>>()
 
-    for (r in 0..rows+1) {
-        for (c in 0..cols+1) {
+    val indexMatrix = Array(rows + 2) { r ->
+        IntArray(cols + 2) { c -> -1 }
+    }
+
+    for (r in 0..rows + 1) {
+        for (c in 0..cols + 1) {
             if ((this[r][c] and 1) == 1) {
                 var i = r + 1
                 var j = c
-                val cycle = mutableListOf((i to j))
+                var cycle = mutableListOf((i to j))
+                indexMatrix[i][j] = 0
                 while (true) {
-                    if (i < rows+1 && (this[i][j - 1] and 2) == 2) {
+                    if (i < rows + 1 && (this[i][j - 1] and 2) == 2) {
                         this[i][j - 1] -= 2
                         i++
                     } else if (i > 0 && (this[i - 1][j - 1] and 2) == 2) {
                         this[i - 1][j - 1] -= 2
                         i--
-                    } else if (j < cols+1 && (this[i - 1][j] and 1 == 1)) {
+                    } else if (j < cols + 1 && (this[i - 1][j] and 1 == 1)) {
                         this[i - 1][j] -= 1
                         j++
-                    } else if (j > 0 && (this[i - 1][j-1] and 1 == 1)) {
-                        this[i - 1][j-1] -= 1
+                    } else if (j > 0 && (this[i - 1][j - 1] and 1 == 1)) {
+                        this[i - 1][j - 1] -= 1
                         j--
-                    } else{
+                    } else {
                         break
                     }
                     cycle.add(i to j)
+                    val ix = indexMatrix[i][j]
+                    if (ix >= 0) {
+                        result.add(cycle.subList(ix, cycle.size).removeConnectingPoints())
+                        println()
+                        cycle.subList(ix, cycle.size).forEach {
+                            indexMatrix[it.first][it.second] = -1
+                        }
+                        cycle = cycle.slice(0..ix + 1) as MutableList<Pair<Int, Int>>
+                    }
+                    indexMatrix[i][j] = cycle.size - 1
                 }
-                result.add(cycle)
             }
         }
     }
-
     return result
+}
+
+fun List<Pair<Int, Int>>.removeConnectingPoints(): List<Pair<Int, Int>> {
+    var latMovement = true
+    return this.filterIndexed { i, point ->
+        if (i == 0 || i == this.size - 1) {
+            true
+        } else if ((point.first != this[i + 1].first && !latMovement) || (latMovement && point.second != this[i + 1].second)) {
+            latMovement = !latMovement
+            true
+        } else {
+            false
+        }
+    }
 }
