@@ -1,10 +1,7 @@
 package ru.garshishka.walknmap
 
 import android.graphics.Color
-import ru.garshishka.walknmap.data.MapPoint
-import ru.garshishka.walknmap.data.makePointMatrix
-import ru.garshishka.walknmap.data.makePolygonPointsLists
-import ru.garshishka.walknmap.data.makeWallsMatrix
+import ru.garshishka.walknmap.data.*
 
 //TODO MOVE THEM BACK TO GLOBAL VARIABLES
 var SQUARE_COLOR = Color.argb(60, 43, 255, 251)
@@ -54,5 +51,11 @@ class Test {
         val result = wallMatrix.makePolygonPointsLists(rows, cols)
 
         result.forEach { println(it) }
+
+        val one = result[0]
+        val two = result[2]
+
+        println(one.isInsideOtherPolygon(two))
+        println(two.isInsideOtherPolygon(one))
     }
 }

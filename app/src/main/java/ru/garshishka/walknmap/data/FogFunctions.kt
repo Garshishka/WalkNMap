@@ -145,3 +145,21 @@ fun List<Pair<Int, Int>>.removeConnectingPoints(): List<Pair<Int, Int>> {
         }
     }
 }
+
+fun List<Pair<Int, Int>>.isInsideOtherPolygon(other: List<Pair<Int, Int>>): Boolean {
+    var isInside = false
+    val firstPoint = this.first()
+    var j = other.size - 1
+
+    for (i in 0..other.size - 1) {
+        if ((other[i].second > firstPoint.second) != (other[j].second > firstPoint.second)) {
+            println("pepa")
+            if (firstPoint.first < ((other[j].first - other[i].first) * (firstPoint.first - other[i].second) / (other[j].second - other[i].second) + other[i].first)) {
+                println("klepa")
+                isInside = !isInside
+            }
+        }
+        j = i
+    }
+    return isInside
+}
