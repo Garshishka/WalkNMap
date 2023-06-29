@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
+import com.yandex.mapkit.geometry.LinearRing
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.geometry.Polygon
 import com.yandex.mapkit.location.FilteringMode
@@ -32,6 +33,7 @@ import ru.garshishka.walknmap.ui.OnInteractionListener
 import ru.garshishka.walknmap.ui.PlacesAdapter
 import ru.garshishka.walknmap.viewmodel.MainViewModel
 import ru.garshishka.walknmap.viewmodel.ViewModelFactory
+import kotlin.math.roundToInt
 
 
 class MainActivity : AppCompatActivity() {
@@ -147,6 +149,7 @@ class MainActivity : AppCompatActivity() {
             if (locationPermission) {
                 setUpUserPosition()
             }
+            isRotateGesturesEnabled = false
 
             locationManager = MapKitFactory.getInstance().createLocationManager()
 
@@ -213,7 +216,7 @@ class MainActivity : AppCompatActivity() {
                 adapter.submitList(places)
                 redrawScreenSquares()
             }
-            loadingMap.observe(this@MainActivity){
+            loadingMap.observe(this@MainActivity) {
                 binding.loading.isVisible = it
             }
         }
@@ -237,7 +240,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private var emptyPointsPrevious = listOf<MapPoint>()
     private fun redrawScreenSquares() = lifecycleScope.launch {
         viewModel.pointList.value?.let { points ->
             if (DRAW_FOG) {
@@ -259,15 +261,39 @@ class MainActivity : AppCompatActivity() {
                                 boundingFogArea
                             )
                         )
-                        val emptyPointsNow =
-                            boundingFogArea.makePointList().filterNot { points.contains(it) }
-                        val k = emptyPointsNow.filterNot { emptyPointsPrevious.contains(it) }//.sortedByDescending { it.lon }
-                        k.addVerticalLinesOfFog(mapObjectCollection,viewModel)
-//                        emptyPointsNow.filterNot { emptyPointsPrevious.contains(it) }.forEach {
-//                            viewModel.addSquare(mapObjectCollection, it.toYandexPoint())
-//                        }
-                        emptyPointsPrevious = emptyPointsNow
-                        println(emptyPointsNow.size)
+
+                        val minPoint =
+                            MapPoint(points.minBy { it.lat }.lat, points.minBy { it.lon }.lon)
+                        val maxPoint =
+                            MapPoint(points.maxBy { it.lat }.lat, points.maxBy { it.lon }.lon)
+
+                        val rows =
+                            ((maxPoint.lat - minPoint.lat) / DOUBLE_LAT_ADJUSTMENT).roundToInt() + 1
+                        val cols =
+                            ((maxPoint.lon - minPoint.lon) / DOUBLE_LON_ADJUSTMENT).roundToInt() + 1
+
+                        val pointMatrix = points.makePointMatrix(minPoint, rows, cols)
+
+                        val wallMatrix = pointMatrix.makeWallsMatrix(rows, cols)
+
+                        val polygons = wallMatrix.makePolygonPointsLists(rows, cols)
+
+                        val insidePolygons = polygons.separateInsidePolygons()
+
+                        val innerRings = polygons.makeLinearRing(minPoint)
+
+                        boundingPolygon = boundingFogObjectCollection.addPolygon(
+                            Polygon(
+                                LinearRing(
+                                    listOf(
+                                        Point(mapScreenArea.maxLat + 1, mapScreenArea.minLon - 1),
+                                        Point(mapScreenArea.minLat - 1, mapScreenArea.minLon - 1),
+                                        Point(mapScreenArea.minLat - 1, mapScreenArea.maxLon + 1),
+                                        Point(mapScreenArea.maxLat + 1, mapScreenArea.maxLon + 1),
+                                    )
+                                ), innerRings
+                            )
+                        )
                     } else {
                     }
                 }
