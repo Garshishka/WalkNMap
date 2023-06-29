@@ -198,7 +198,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             testButton1.setOnClickListener {
-                viewModel.deletePointsOnNewSquareSize()
+                test()
             }
             testButton2.setOnClickListener {
                 mapView.isVisible = !mapView.isVisible

@@ -1,9 +1,17 @@
 package ru.garshishka.walknmap.data
 
+import com.yandex.mapkit.geometry.LinearRing
+import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.MapObjectCollection
 import ru.garshishka.walknmap.LAT_ADJUSTMENT
+import ru.garshishka.walknmap.LAT_ROUNDER
+import ru.garshishka.walknmap.LON_ADJUSTMENT
+import ru.garshishka.walknmap.LON_ROUNDER
 import ru.garshishka.walknmap.viewmodel.MainViewModel
 import kotlin.math.round
+
+fun Double.roundForCoordinates(forLat: Boolean): Double =
+    round(this * (if (forLat) LAT_ROUNDER else LON_ROUNDER)) / (if (forLat) LAT_ROUNDER else LON_ROUNDER)
 
 fun List<MapPoint>.addVerticalLinesOfFog(
     mapObjectCollection: MapObjectCollection,
@@ -153,9 +161,7 @@ fun List<Pair<Int, Int>>.isInsideOtherPolygon(other: List<Pair<Int, Int>>): Bool
 
     for (i in 0..other.size - 1) {
         if ((other[i].second > firstPoint.second) != (other[j].second > firstPoint.second)) {
-            println("pepa")
             if (firstPoint.first < ((other[j].first - other[i].first) * (firstPoint.first - other[i].second) / (other[j].second - other[i].second) + other[i].first)) {
-                println("klepa")
                 isInside = !isInside
             }
         }
@@ -163,3 +169,37 @@ fun List<Pair<Int, Int>>.isInsideOtherPolygon(other: List<Pair<Int, Int>>): Bool
     }
     return isInside
 }
+
+fun MutableList<List<Pair<Int, Int>>>.separateInsidePolygons(): MutableList<List<Pair<Int, Int>>> {
+    val insidePolygons = mutableListOf<List<Pair<Int, Int>>>()
+
+    val iterator = this.listIterator()
+    while (iterator.hasNext()) {
+        val polygon = iterator.next()
+        run breaking@{
+            this.filterNot { it == polygon }.forEach { other ->
+                if (polygon.isInsideOtherPolygon(other)) {
+                    iterator.remove()
+                    insidePolygons.add(polygon)
+                    return@breaking
+                }
+            }
+        }
+    }
+
+    return insidePolygons
+}
+
+fun MutableList<List<Pair<Int, Int>>>.makeLinearRing(minPoint: MapPoint): ArrayList<LinearRing> =
+    ArrayList(this.map { list ->
+        LinearRing(list.map {
+            Point(
+                ((minPoint.lat + ((it.first - 1) * 2 * LAT_ADJUSTMENT)) - LAT_ADJUSTMENT).roundForCoordinates(
+                    true
+                ),
+                (minPoint.lon + ((it.second - 1) * 2 * LON_ADJUSTMENT) - LON_ADJUSTMENT).roundForCoordinates(
+                    false
+                )
+            )
+        })
+    })
