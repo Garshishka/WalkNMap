@@ -3,6 +3,7 @@ package ru.garshishka.walknmap
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.graphics.PointF
 import android.os.Bundle
 import android.view.WindowManager
@@ -262,6 +263,8 @@ class MainActivity : AppCompatActivity() {
                             )
                         )
 
+                        boundingFogObjectCollection.clear()
+
                         val minPoint =
                             MapPoint(points.minBy { it.lat }.lat, points.minBy { it.lon }.lon)
                         val maxPoint =
@@ -278,6 +281,7 @@ class MainActivity : AppCompatActivity() {
 
                         val polygons = wallMatrix.makePolygonPointsLists(rows, cols)
 
+                        //TODO DRAW INSIDE POLYGONS ALSO (AND POLYGONS INSIDE THEM(AND INSIDE THEM...)
                         val insidePolygons = polygons.separateInsidePolygons()
 
                         val innerRings = polygons.makeLinearRing(minPoint)
@@ -294,6 +298,8 @@ class MainActivity : AppCompatActivity() {
                                 ), innerRings
                             )
                         )
+                        boundingPolygon.fillColor = FOG_COLOR
+                        boundingPolygon.strokeColor = Color.TRANSPARENT
                     } else {
                     }
                 }
