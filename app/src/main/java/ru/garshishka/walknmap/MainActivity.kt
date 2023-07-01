@@ -3,7 +3,6 @@ package ru.garshishka.walknmap
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.graphics.PointF
 import android.os.Bundle
 import android.view.WindowManager
@@ -202,7 +201,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             testButton1.setOnClickListener {
-                test()
+                REDUCE_BLINKING = !REDUCE_BLINKING
             }
             testButton2.setOnClickListener {
                 mapView.isVisible = !mapView.isVisible
@@ -236,35 +235,31 @@ class MainActivity : AppCompatActivity() {
             val target = it.target.roundCoordinates()
             if (viewModel.getPoint(target) == null) {
                 viewModel.save(MapPoint(target.latitude, target.longitude))
-                target.addSquare(mapObjectCollection)
+                if (DRAW_FOG) {
+                    target.addSquare(mapObjectCollection)
+                }
             }
         }
     }
 
+    var oldInsidePolygons = listOf<Polygon>()
     private fun redrawScreenSquares() = lifecycleScope.launch {
         viewModel.pointList.value?.let { points ->
             if (DRAW_FOG) {
                 if (points.isEmpty()) {
-                    redrawBoundingBoxFog(AreaCoordinates(0.0, 0.0, 0.0, 0.0))
+                    boundingFogArea = AreaCoordinates(0.0, 0.0, 0.0, 0.0)
+                    redrawFog(ArrayList())
+                    mapObjectCollection.clear()
                 } else {
-                    if (redrawBoundingBoxFog(
-                            AreaCoordinates(
-                                points.minBy { it.lat }.lat,
-                                points.maxBy { it.lat }.lat,
-                                points.minBy { it.lon }.lon,
-                                points.maxBy { it.lon }.lon,
-                            )
-                        )
-                    ) {
-                        mapObjectCollection.traverse(
-                            RemovePolygonsOutsiderArea(
-                                mapObjectCollection,
-                                boundingFogArea
-                            )
-                        )
-
-                        boundingFogObjectCollection.clear()
-
+                    val newBoundingArea = AreaCoordinates(
+                        points.minBy { it.lat }.lat,
+                        points.maxBy { it.lat }.lat,
+                        points.minBy { it.lon }.lon,
+                        points.maxBy { it.lon }.lon,
+                    )
+                    if (newBoundingArea != boundingFogArea || viewModel.pointJustAdded) {
+                        viewModel.pointJustAdded = false
+                        boundingFogArea = newBoundingArea
                         val minPoint =
                             MapPoint(points.minBy { it.lat }.lat, points.minBy { it.lon }.lon)
                         val maxPoint =
@@ -275,38 +270,69 @@ class MainActivity : AppCompatActivity() {
                         val cols =
                             ((maxPoint.lon - minPoint.lon) / DOUBLE_LON_ADJUSTMENT).roundToInt() + 1
 
-                        val pointMatrix = points.makePointMatrix(minPoint, rows, cols)
+                        //From the visible on the screen points we make polygons
+                        // that will carve pockets of visibility in the fog
+                        val polygons = points.makePointMatrix(minPoint, rows, cols)
+                            .makeWallsMatrix(rows, cols)
+                            .makePolygonPointsLists(rows, cols)
 
-                        val wallMatrix = pointMatrix.makeWallsMatrix(rows, cols)
 
-                        val polygons = wallMatrix.makePolygonPointsLists(rows, cols)
+                        //ONLY DRAWING FIRST LAYER OF INSIDE POLYGONS FOR NOW
+                        if (polygons.size > 1) {
+                            val insidePolygonsPoints = polygons.separateInsidePolygons()
+                            if (insidePolygonsPoints.isNotEmpty()) {
+                                //TODO THIS PROBABLY NEEDS TO BE RECURSIVE
+                                if (insidePolygonsPoints.size > 1) {
+                                    val insidePolygonsHoles =
+                                        insidePolygonsPoints.separateInsidePolygons()
+                                }
+                                val insidePolygons = insidePolygonsPoints.makeLinearRing(minPoint)
+                                    .map { makeInsidePolygon(it) }
 
-                        //TODO DRAW INSIDE POLYGONS ALSO (AND POLYGONS INSIDE THEM(AND INSIDE THEM...)
-                        val insidePolygons = polygons.separateInsidePolygons()
+                                if (REDUCE_BLINKING) {
+                                    //we delete inside polygons that we can't see anymore
+                                    oldInsidePolygons.filterOtherPolygonList(insidePolygons)
+                                        .forEach {
+                                            mapObjectCollection.traverse(
+                                                RedrawInsidePolygons(
+                                                    mapObjectCollection,
+                                                    it,
+                                                    true
+                                                )
+                                            )
+                                        }
+                                    //and then don't touch already existing and add new ones
+                                    insidePolygons.forEach {
+                                        mapObjectCollection.traverse(
+                                            RedrawInsidePolygons(
+                                                mapObjectCollection,
+                                                it
+                                            )
+                                        )
+                                    }
+                                } else {
+                                    //we just clear all map objects and add all polygons back
+                                    mapObjectCollection.clear()
+                                    insidePolygons.forEach {
+                                        mapObjectCollection.addPolygon(it)
+                                    }
+                                }
+                                oldInsidePolygons = insidePolygons
+                            } else {
+                                mapObjectCollection.clear()
+                                oldInsidePolygons = listOf()
+                            }
+                        }
 
                         val innerRings = polygons.makeLinearRing(minPoint)
 
-                        boundingPolygon = boundingFogObjectCollection.addPolygon(
-                            Polygon(
-                                LinearRing(
-                                    listOf(
-                                        Point(mapScreenArea.maxLat + 1, mapScreenArea.minLon - 1),
-                                        Point(mapScreenArea.minLat - 1, mapScreenArea.minLon - 1),
-                                        Point(mapScreenArea.minLat - 1, mapScreenArea.maxLon + 1),
-                                        Point(mapScreenArea.maxLat + 1, mapScreenArea.maxLon + 1),
-                                    )
-                                ), innerRings
-                            )
-                        )
-                        boundingPolygon.fillColor = FOG_COLOR
-                        boundingPolygon.strokeColor = Color.TRANSPARENT
-                    } else {
+                        redrawFog(innerRings)
                     }
                 }
             } else {
                 //new points get squares
                 points.filterNot { viewModel.oldPointList.contains(it) }.forEach {
-                    it.toYandexPoint().addSquare(mapObjectCollection)
+                    viewModel.addSquare(mapObjectCollection, it.toYandexPoint())
                 }
                 //squares we can't see anymore get deleted
                 viewModel.oldPointList.filterNot { points.contains(it) }.forEach {
@@ -317,20 +343,14 @@ class MainActivity : AppCompatActivity() {
         viewModel.changeLoadingState(false)
     }
 
-    private fun redrawBoundingBoxFog(newBoundingArea: AreaCoordinates): Boolean {
-        return if (newBoundingArea != boundingFogArea) {
-            boundingFogArea = newBoundingArea
-            if (this::boundingPolygon.isInitialized) {
-                boundingPolygon.geometry = Polygon(
-                    boundingPolygon.geometry.outerRing,
-                    boundingFogArea.makeInnerSquareForPolygon()
-                )
-            } else {
-                boundingPolygon = boundingFogArea.makeBoundingPolygon(boundingFogObjectCollection)
-            }
-            true
+    private fun redrawFog(innerRings: List<LinearRing>) {
+        if (this::boundingPolygon.isInitialized) {
+            boundingPolygon.geometry = Polygon(
+                boundingPolygon.geometry.outerRing,
+                innerRings
+            )
         } else {
-            false
+            boundingPolygon = makeBoundingPolygon(boundingFogObjectCollection, innerRings)
         }
     }
 

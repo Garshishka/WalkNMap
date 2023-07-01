@@ -22,8 +22,12 @@ fun List<MapPoint>.makePointMatrix(minPoint: MapPoint, rows: Int, cols: Int): Ar
                 if (this.contains(
                         //beginning from most left and bottom point
                         MapPoint(
-                            (minPoint.lat + ((r - 1) * DOUBLE_LAT_ADJUSTMENT)).roundForCoordinates(true),
-                            (minPoint.lon + ((c - 1) * DOUBLE_LON_ADJUSTMENT)).roundForCoordinates(false)
+                            (minPoint.lat + ((r - 1) * DOUBLE_LAT_ADJUSTMENT)).roundForCoordinates(
+                                true
+                            ),
+                            (minPoint.lon + ((c - 1) * DOUBLE_LON_ADJUSTMENT)).roundForCoordinates(
+                                false
+                            )
                         )
                     )
                 ) {
@@ -69,8 +73,8 @@ fun Array<IntArray>.makePolygonPointsLists(
     val result = mutableListOf<List<Pair<Int, Int>>>()
 
     //Special matrix that let us detect two squares that only touch each other with one corner
-    val indexMatrix = Array(rows + 2) { r ->
-        IntArray(cols + 2) { c -> -1 }
+    val indexMatrix = Array(rows + 2) {
+        IntArray(cols + 2) { -1 }
     }
 
     for (r in 0..rows + 1) {
@@ -149,7 +153,7 @@ fun List<Pair<Int, Int>>.removeConnectingPoints(): List<Pair<Int, Int>> {
 
 fun List<Pair<Int, Int>>.isInsideOtherPolygon(other: List<Pair<Int, Int>>): Boolean {
     var isInside = false
-    //Considering that way our system is setup all of the polygon pointa must be inside another one
+    //Considering that way our system is setup all of the polygon point must be inside another one
     //So we only check first point against other polygons
     val firstPoint = this.first()
     var j = other.size - 1
@@ -157,7 +161,7 @@ fun List<Pair<Int, Int>>.isInsideOtherPolygon(other: List<Pair<Int, Int>>): Bool
     //This algorithm is based on quick version of raytracing algorithm
     //Points sends a "ray" and "count" every time this ray crosses other polygon walls
     //If the number of crosses is odd - point is inside. Even - it is not
-    for (i in 0..other.size - 1) {
+    for (i in other.indices) {
         if ((other[i].second > firstPoint.second) != (other[j].second > firstPoint.second)) {
             if (firstPoint.first < ((other[j].first - other[i].first) * (firstPoint.first - other[i].second) / (other[j].second - other[i].second) + other[i].first)) {
                 isInside = !isInside
@@ -188,7 +192,7 @@ fun MutableList<List<Pair<Int, Int>>>.separateInsidePolygons(): MutableList<List
     return insidePolygons
 }
 
-fun MutableList<List<Pair<Int, Int>>>.makeLinearRing(minPoint: MapPoint): ArrayList<LinearRing> =
+fun List<List<Pair<Int, Int>>>.makeLinearRing(minPoint: MapPoint): ArrayList<LinearRing> =
     //Here the int matrix once again becomes doubles lat and lon for the map
     ArrayList(this.map { list ->
         LinearRing(list.map {
