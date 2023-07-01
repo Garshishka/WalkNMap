@@ -235,7 +235,7 @@ class MainActivity : AppCompatActivity() {
             val target = it.target.roundCoordinates()
             if (viewModel.getPoint(target) == null) {
                 viewModel.save(MapPoint(target.latitude, target.longitude))
-                if (DRAW_FOG) {
+                if (!DRAW_FOG) {
                     target.addSquare(mapObjectCollection)
                 }
             }
