@@ -5,7 +5,7 @@ import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.Map
 
-class MapCameraListener(val onMapInteractionListener: OnMapInteractionListener) : CameraListener {
+class MapCameraListener(private val onMapInteractionListener: OnMapInteractionListener) : CameraListener {
     var followUserLocation = false
 
     override fun onCameraPositionChanged(
