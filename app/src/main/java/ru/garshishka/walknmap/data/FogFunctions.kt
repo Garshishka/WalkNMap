@@ -69,8 +69,8 @@ fun Array<IntArray>.makeWallsMatrix(rows: Int, cols: Int): Array<IntArray> =
 fun Array<IntArray>.makePolygonPointsLists(
     rows: Int,
     cols: Int
-): MutableList<List<Pair<Int, Int>>> {
-    val result = mutableListOf<List<Pair<Int, Int>>>()
+): MutableList<List<MatrixPoint>> {
+    val result = mutableListOf<List<MatrixPoint>>()
 
     //Special matrix that let us detect two squares that only touch each other with one corner
     val indexMatrix = Array(rows + 2) {
@@ -82,7 +82,7 @@ fun Array<IntArray>.makePolygonPointsLists(
             if ((this[r][c] and 1) == 1) {
                 var i = r + 1
                 var j = c
-                var cycle = mutableListOf((i to j))
+                var cycle = mutableListOf(MatrixPoint(i,j))
                 indexMatrix[i][j] = 0
                 //Using bitwise operator we check if element before this one has a vertical wall
                 //then we check element before and below this one
@@ -107,7 +107,7 @@ fun Array<IntArray>.makePolygonPointsLists(
                     //When we find walls we subtract 1 or 2 for horizontal or vertical walls
                     //the we "move along" the wall to the next point and check again
                     //when we can't find new walls this while ends
-                    cycle.add(i to j)
+                    cycle.add(MatrixPoint(i,j))
                     //Cycle stores "visited" points
                     val ix = indexMatrix[i][j]
                     if (ix >= 0) {
@@ -117,10 +117,10 @@ fun Array<IntArray>.makePolygonPointsLists(
                         //we get one polygon point list (and remove unnecessary points from it)
                         cycle.subList(ix, cycle.size).forEach {
                             //for taken out points we make their index -1 again
-                            indexMatrix[it.first][it.second] = -1
+                            indexMatrix[it.lat][it.lon] = -1
                         }
                         //points that were not in the loop but already visited are left in the cycle
-                        cycle = cycle.slice(0..ix) as MutableList<Pair<Int, Int>>
+                        cycle = cycle.slice(0..ix) as MutableList<MatrixPoint>
                     }
                     //In index matrix we save count of visited elements in element coordinates
                     //it helps us determine how many points et in one loop
@@ -133,7 +133,7 @@ fun Array<IntArray>.makePolygonPointsLists(
 }
 
 //Considering we only need corner points to make a polygon, this function removes unnecessary points
-fun List<Pair<Int, Int>>.removeConnectingPoints(): List<Pair<Int, Int>> {
+fun List<MatrixPoint>.removeConnectingPoints(): List<MatrixPoint> {
     //Flag that shows are we moving horizontally or vertically
     //every corner we change the axis so the flag changes accordingly
     var latMovement = true
@@ -142,7 +142,7 @@ fun List<Pair<Int, Int>>.removeConnectingPoints(): List<Pair<Int, Int>> {
         //and same lon on vertical
         if (i == 0 || i == this.size - 1) {
             true
-        } else if ((point.first != this[i + 1].first && !latMovement) || (latMovement && point.second != this[i + 1].second)) {
+        } else if ((point.lat != this[i + 1].lat && !latMovement) || (latMovement && point.lon != this[i + 1].lon)) {
             latMovement = !latMovement
             true
         } else {
@@ -151,56 +151,75 @@ fun List<Pair<Int, Int>>.removeConnectingPoints(): List<Pair<Int, Int>> {
     }
 }
 
-fun List<Pair<Int, Int>>.isInsideOtherPolygon(other: List<Pair<Int, Int>>): Boolean {
-    var isInside = false
-    //Considering that way our system is setup all of the polygon point must be inside another one
+fun List<MatrixPoint>.isInsideOtherPolygon(other: List<MatrixPoint>): PolygonState {
+    //Considering that way our system is setup all of the polygon points must be inside another one
     //So we only check first point against other polygons
-    val firstPoint = this.first()
-    var j = other.size - 1
+    val firstPointState = this.first().checkAgainstPolygonList(other)
+    for(i in 1..this.size-2) {
+        //But because of one way our point algorithm can fail we can get interlocked polygons
+        //To capture them we have to check every other point of the polygon
+        //if its different from the first point - they are interlocked
+        if (this[i].checkAgainstPolygonList(other) != firstPointState) {
+            return PolygonState.INTERLOCKED
+        }
+    }
+    return firstPointState
+}
 
+fun MatrixPoint.checkAgainstPolygonList(other: List<MatrixPoint>): PolygonState {
+    var isInside = false
+    var j = other.size - 1
     //This algorithm is based on quick version of raytracing algorithm
     //Points sends a "ray" and "count" every time this ray crosses other polygon walls
     //If the number of crosses is odd - point is inside. Even - it is not
     for (i in other.indices) {
-        if ((other[i].second > firstPoint.second) != (other[j].second > firstPoint.second)) {
-            if (firstPoint.first < ((other[j].first - other[i].first) * (firstPoint.first - other[i].second) / (other[j].second - other[i].second) + other[i].first)) {
+        if ((other[i].lon > this.lon) != (other[j].lon > this.lon)) {
+            if (this.lat < ((other[j].lat - other[i].lat) * (this.lat - other[i].lon) / (other[j].lon - other[i].lon) + other[i].lat)) {
                 isInside = !isInside
             }
         }
         j = i
     }
-    return isInside
+    return if(isInside) PolygonState.INSIDE else PolygonState.OUTSIDE
 }
 
-fun MutableList<List<Pair<Int, Int>>>.separateInsidePolygons(): MutableList<List<Pair<Int, Int>>> {
-    val insidePolygons = mutableListOf<List<Pair<Int, Int>>>()
+fun MutableList<List<MatrixPoint>>.separateInsidePolygons(): PolygonSeparator {
+    val separatingPolygons = PolygonSeparator()
 
     val iterator = this.listIterator()
     while (iterator.hasNext()) {
         val polygon = iterator.next()
         run breaking@{
             this.filterNot { it == polygon }.forEach { other ->
-                if (polygon.isInsideOtherPolygon(other)) {
-                    iterator.remove()
-                    insidePolygons.add(polygon)
-                    return@breaking
+                when(polygon.isInsideOtherPolygon(other)){
+                    PolygonState.INSIDE -> {
+                        iterator.remove()
+                        separatingPolygons.insidePolygons.add(polygon)
+                        return@breaking
+                    }
+                    PolygonState.INTERLOCKED -> {
+                        iterator.remove()
+                        separatingPolygons.interlockedPolygons.add(polygon to other)
+                        return@breaking
+                    }
+                    PolygonState.OUTSIDE ->{}
                 }
             }
         }
     }
 
-    return insidePolygons
+    return separatingPolygons
 }
 
-fun List<List<Pair<Int, Int>>>.makeLinearRing(minPoint: MapPoint): ArrayList<LinearRing> =
+fun List<List<MatrixPoint>>.makeLinearRing(minPoint: MapPoint): ArrayList<LinearRing> =
     //Here the int matrix once again becomes doubles lat and lon for the map
     ArrayList(this.map { list ->
         LinearRing(list.map {
             Point(
-                ((minPoint.lat + ((it.first - 1) * 2 * LAT_ADJUSTMENT)) - LAT_ADJUSTMENT).roundForCoordinates(
+                ((minPoint.lat + ((it.lat - 1) * 2 * LAT_ADJUSTMENT)) - LAT_ADJUSTMENT).roundForCoordinates(
                     true, true
                 ),
-                (minPoint.lon + ((it.second - 1) * 2 * LON_ADJUSTMENT) - LON_ADJUSTMENT).roundForCoordinates(
+                (minPoint.lon + ((it.lon - 1) * 2 * LON_ADJUSTMENT) - LON_ADJUSTMENT).roundForCoordinates(
                     false, true
                 )
             )

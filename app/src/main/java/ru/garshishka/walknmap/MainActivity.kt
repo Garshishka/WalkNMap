@@ -11,7 +11,6 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
@@ -24,7 +23,6 @@ import com.yandex.mapkit.map.LayerIds
 import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.map.PolygonMapObject
 import com.yandex.mapkit.user_location.UserLocationLayer
-import kotlinx.coroutines.launch
 import ru.garshishka.walknmap.data.*
 import ru.garshishka.walknmap.databinding.ActivityMainBinding
 import ru.garshishka.walknmap.di.DependencyContainer
@@ -201,7 +199,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             testButton1.setOnClickListener {
-                REDUCE_BLINKING = !REDUCE_BLINKING
+                test()
             }
             testButton2.setOnClickListener {
                 mapView.isVisible = !mapView.isVisible
@@ -242,14 +240,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    var oldInsidePolygons = listOf<Polygon>()
-    private fun redrawScreenSquares() = lifecycleScope.launch {
+    private fun redrawScreenSquares() {
         viewModel.pointList.value?.let { points ->
             if (DRAW_FOG) {
                 if (points.isEmpty()) {
-                    boundingFogArea = AreaCoordinates(0.0, 0.0, 0.0, 0.0)
-                    redrawFog(ArrayList())
-                    mapObjectCollection.clear()
+                   // lifecycleScope.launch {
+                        boundingFogArea = AreaCoordinates(0.0, 0.0, 0.0, 0.0)
+                        redrawFog(ArrayList())
+                        mapObjectCollection.clear()
+                   // }
                 } else {
                     val newBoundingArea = AreaCoordinates(
                         points.minBy { it.lat }.lat,
@@ -276,68 +275,31 @@ class MainActivity : AppCompatActivity() {
                             .makeWallsMatrix(rows, cols)
                             .makePolygonPointsLists(rows, cols)
 
-
                         //ONLY DRAWING FIRST LAYER OF INSIDE POLYGONS FOR NOW
-                        if (polygons.size > 1) {
-                            val insidePolygonsPoints = polygons.separateInsidePolygons()
-                            if (insidePolygonsPoints.isNotEmpty()) {
-                                //TODO THIS PROBABLY NEEDS TO BE RECURSIVE
-                                if (insidePolygonsPoints.size > 1) {
-                                    val insidePolygonsHoles =
-                                        insidePolygonsPoints.separateInsidePolygons()
-                                }
-                                val insidePolygons = insidePolygonsPoints.makeLinearRing(minPoint)
-                                    .map { makeInsidePolygon(it) }
-
-                                if (REDUCE_BLINKING) {
-                                    //we delete inside polygons that we can't see anymore
-                                    oldInsidePolygons.filterOtherPolygonList(insidePolygons)
-                                        .forEach {
-                                            mapObjectCollection.traverse(
-                                                RedrawInsidePolygons(
-                                                    mapObjectCollection,
-                                                    it,
-                                                    true
-                                                )
-                                            )
-                                        }
-                                    //and then don't touch already existing and add new ones
-                                    insidePolygons.forEach {
-                                        mapObjectCollection.traverse(
-                                            RedrawInsidePolygons(
-                                                mapObjectCollection,
-                                                it
-                                            )
-                                        )
-                                    }
-                                } else {
-                                    //we just clear all map objects and add all polygons back
-                                    mapObjectCollection.clear()
-                                    insidePolygons.forEach {
-                                        mapObjectCollection.addPolygon(it)
-                                    }
-                                }
-                                oldInsidePolygons = insidePolygons
-                            } else {
-                                mapObjectCollection.clear()
-                                oldInsidePolygons = listOf()
-                            }
-                        }
-
+//                        if (polygons.size > 1) {
+//                            drawInnerPolygons(
+//                                polygons.separateInsidePolygons(),
+//                                mapObjectCollection,
+//                                minPoint
+//                            )
+//                        }
                         val innerRings = polygons.makeLinearRing(minPoint)
 
                         redrawFog(innerRings)
+                    } else {
                     }
                 }
             } else {
-                //new points get squares
-                points.filterNot { viewModel.oldPointList.contains(it) }.forEach {
-                    viewModel.addSquare(mapObjectCollection, it.toYandexPoint())
-                }
-                //squares we can't see anymore get deleted
-                viewModel.oldPointList.filterNot { points.contains(it) }.forEach {
-                    traverseMapObjectsToRemove(it.toYandexPoint())
-                }
+                //lifecycleScope.launch {
+                    //new points get squares
+                    points.filterNot { viewModel.oldPointList.contains(it) }.forEach {
+                        viewModel.addSquare(mapObjectCollection, it.toYandexPoint())
+                    }
+                    //squares we can't see anymore get deleted
+                    viewModel.oldPointList.filterNot { points.contains(it) }.forEach {
+                        traverseMapObjectsToRemove(it.toYandexPoint())
+                    }
+               // }
             }
         }
         viewModel.changeLoadingState(false)
@@ -352,6 +314,30 @@ class MainActivity : AppCompatActivity() {
         } else {
             boundingPolygon = makeBoundingPolygon(boundingFogObjectCollection, innerRings)
         }
+    }
+
+    private fun drawInnerPolygons(
+        insidePolygonsPoints: MutableList<MatrixPoint>,
+        mapObjectCollection: MapObjectCollection,
+        minPoint: MapPoint,
+    ) {
+       /* if (insidePolygonsPoints.isNotEmpty()) {
+            //TODO THIS PROBABLY NEEDS TO BE RECURSIVE
+            if (insidePolygonsPoints.size > 1) {
+                val insidePolygonsHoles =
+                    insidePolygonsPoints.separateInsidePolygons()
+            }
+            val insidePolygons = insidePolygonsPoints.makeLinearRing(minPoint)
+                .map { makeInsidePolygon(it) }
+
+            //we just clear all map objects and add all polygons back
+            mapObjectCollection.clear()
+            insidePolygons.forEach {
+                mapObjectCollection.addPolygon(it)
+            }
+        } else {
+            mapObjectCollection.clear()
+        }*/
     }
 
     private fun traverseMapObjectsToRemove(point: Point) {
@@ -434,7 +420,7 @@ class MainActivity : AppCompatActivity() {
         locationManager?.subscribeForLocationUpdates(
             0.0,
             0,
-            5.0,
+            2.0,
             false,
             FilteringMode.OFF,
             locationListener
