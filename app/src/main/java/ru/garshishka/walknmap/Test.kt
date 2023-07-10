@@ -3,6 +3,8 @@ package ru.garshishka.walknmap
 import ru.garshishka.walknmap.data.*
 
 fun test() {
+
+
     val beepka = arrayOf(
         intArrayOf(0, 0, 0, 0, 0),
         intArrayOf(0, 0, 1, 1, 0),
@@ -21,59 +23,48 @@ fun test() {
         println(row.contentToString())
     }
 
-    val res = soop.makePolygonPointsLists(rows,cols)
+    val res = soop.makePolygonPointsLists(rows, cols)
     res.forEach { println(it) }
 
-    println(res[1].isInsideOtherPolygon(res[0]))
-//
-//res[1].forEach {
-//    println(it.zepa(res[0]).toString()
-//            + " $it")
-//}
-    val zhores : MutableList<MatrixLine> = mutableListOf()
+    val outsideP = res[0]
+    val insideP = res[1]
 
-    var oldKefa = res[1][0].zepa(res[0])
-    println(oldKefa)
-    for(i in 1..res[1].size-1){
-        val kefa = res[1][i].zepa(res[0])
-        println(kefa)
-        if(oldKefa!=kefa){
-            zhores.add(res[1][i].lineWith(res[1][i-1]))
+    println(insideP.isInsideOtherPolygon(outsideP))
+
+    val interlockedLines: MutableList<MatrixLine> = mutableListOf()
+    var oldStatus = insideP[0].isInsideOtherPolygon(outsideP)
+    val insidePoints = mutableListOf<MatrixPoint>()
+    val outsidePoints = mutableListOf<MatrixPoint>()
+    println(oldStatus)
+    for (i in 1 until insideP.size) {
+        val status = insideP[i].isInsideOtherPolygon(outsideP)
+        println(status)
+        if(status == PolygonState.INSIDE){
+            insidePoints.add(insideP[i])
+        } else{
+            outsidePoints.add(insideP[i])
         }
-        oldKefa = kefa
+        if (oldStatus != status) {
+            interlockedLines.add(insideP[i].lineWith(insideP[i - 1]))
+        }
+        oldStatus = status
     }
-    println(zhores)
-
-    zhores.forEach {
-        for(i in 1..res[0].size-1){
-            if(it.horizontal){
-                if(res[0][i].lon==res[0][i-1].lon){
-                    // if(res[0][i].lat)
-                }
-            }else{
-
-            }
-        }
+    println(insidePoints)
+    println(interlockedLines)
+    if(interlockedLines.size>2){
+        throw Exception("Too much interlocking lines")
     }
 
+    val intersectingPoints = mutableSetOf<MatrixPoint>()
 
+    interlockedLines.forEach {intersectingPoints.add(it.findIntersectingPoint(outsideP)) }
+    println(intersectingPoints)
 
+    insidePoints.add(0,intersectingPoints.first())
+    insidePoints.add(insidePoints.size,intersectingPoints.last())
+    println(insidePoints)
 
-
-}
-
-
-fun MatrixPoint.zepa(other: List<MatrixPoint>): PolygonState {
-    var isInside = false
-    var j = other.size - 1
-    for (i in other.indices) {
-        if ((other[i].lon > this.lon) != (other[j].lon > this.lon)) {
-            if (this.lat < ((other[j].lat - other[i].lat) * (this.lat - other[i].lon) / (other[j].lon - other[i].lon) + other[i].lat)) {
-                isInside = !isInside
-                //println("this ${other[i]} - ${other[j]}")
-            }
-        }
-        j = i
-    }
-    return if(isInside) PolygonState.INSIDE else PolygonState.OUTSIDE
+    outsidePoints.add(0,intersectingPoints.first())
+    outsidePoints.add(outsidePoints.size,intersectingPoints.last())
+    println(outsidePoints)
 }
