@@ -154,33 +154,16 @@ fun List<MatrixPoint>.removeConnectingPoints(): List<MatrixPoint> {
 fun List<MatrixPoint>.isInsideOtherPolygon(other: List<MatrixPoint>): PolygonState {
     //Considering that way our system is setup all of the polygon points must be inside another one
     //So we only check first point against other polygons
-    val firstPointState = this.first().checkAgainstPolygonList(other)
+    val firstPointState = this.first().isInsideOtherPolygon(other)
     for(i in 1..this.size-2) {
         //But because of one way our point algorithm can fail we can get interlocked polygons
         //To capture them we have to check every other point of the polygon
         //if its different from the first point - they are interlocked
-        if (this[i].checkAgainstPolygonList(other) != firstPointState) {
+        if (this[i].isInsideOtherPolygon(other) != firstPointState) {
             return PolygonState.INTERLOCKED
         }
     }
     return firstPointState
-}
-
-fun MatrixPoint.checkAgainstPolygonList(other: List<MatrixPoint>): PolygonState {
-    var isInside = false
-    var j = other.size - 1
-    //This algorithm is based on quick version of raytracing algorithm
-    //Points sends a "ray" and "count" every time this ray crosses other polygon walls
-    //If the number of crosses is odd - point is inside. Even - it is not
-    for (i in other.indices) {
-        if ((other[i].lon > this.lon) != (other[j].lon > this.lon)) {
-            if (this.lat < ((other[j].lat - other[i].lat) * (this.lat - other[i].lon) / (other[j].lon - other[i].lon) + other[i].lat)) {
-                isInside = !isInside
-            }
-        }
-        j = i
-    }
-    return if(isInside) PolygonState.INSIDE else PolygonState.OUTSIDE
 }
 
 fun MutableList<List<MatrixPoint>>.separateInsidePolygons(): PolygonSeparator {

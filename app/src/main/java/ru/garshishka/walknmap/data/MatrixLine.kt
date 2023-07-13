@@ -1,14 +1,5 @@
 package ru.garshishka.walknmap.data
 
-data class MatrixPoint(
-    val lat : Int,
-    val lon : Int,
-){
-    override fun toString(): String {
-        return "$lat|$lon"
-    }
-}
-
 data class MatrixLine(
     val horizontal : Boolean,
     val sameCoord : Int,
@@ -23,33 +14,6 @@ data class MatrixLine(
         }
     }
 }
-
-
-fun MatrixPoint.isInsideOtherPolygon(other: List<MatrixPoint>): PolygonState {
-    var isInside = false
-    var j = other.size - 1
-    for (i in other.indices) {
-        if ((other[i].lon > this.lon) != (other[j].lon > this.lon)) {
-            if (this.lat < ((other[j].lat - other[i].lat) * (this.lat - other[i].lon) / (other[j].lon - other[i].lon) + other[i].lat)) {
-                isInside = !isInside
-            }
-        }
-        j = i
-    }
-    return if (isInside) PolygonState.INSIDE else PolygonState.OUTSIDE
-}
-
-fun MatrixPoint.lineWith(other : MatrixPoint) : MatrixLine{
-    val horizontal =  (this.lat == other.lat)
-
-    return MatrixLine(
-        horizontal,
-        if(horizontal) this.lat else this.lon,
-        if(horizontal) maxOf(this.lon, other.lon) else maxOf(this.lat, other.lat),
-        if(horizontal) minOf(this.lon, other.lon) else minOf(this.lat, other.lat)
-    )
-}
-
 
 fun MatrixLine.findIntersectingPoint(otherPolygon: List<MatrixPoint>) : MatrixPoint{
     for (i in 1 until otherPolygon.size) {
