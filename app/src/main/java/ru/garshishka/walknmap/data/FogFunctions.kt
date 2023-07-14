@@ -69,8 +69,8 @@ fun Array<IntArray>.makeWallsMatrix(rows: Int, cols: Int): Array<IntArray> =
 fun Array<IntArray>.makePolygonPointsLists(
     rows: Int,
     cols: Int
-): MutableList<List<MatrixPoint>> {
-    val result = mutableListOf<List<MatrixPoint>>()
+): MutableList<MutableList<MatrixPoint>> {
+    val result = mutableListOf<MutableList<MatrixPoint>>()
 
     //Special matrix that let us detect two squares that only touch each other with one corner
     val indexMatrix = Array(rows + 2) {
@@ -133,7 +133,7 @@ fun Array<IntArray>.makePolygonPointsLists(
 }
 
 //Considering we only need corner points to make a polygon, this function removes unnecessary points
-fun List<MatrixPoint>.removeConnectingPoints(): List<MatrixPoint> {
+fun List<MatrixPoint>.removeConnectingPoints(): MutableList<MatrixPoint> {
     //Flag that shows are we moving horizontally or vertically
     //every corner we change the axis so the flag changes accordingly
     var latMovement = true
@@ -148,7 +148,7 @@ fun List<MatrixPoint>.removeConnectingPoints(): List<MatrixPoint> {
         } else {
             false
         }
-    }
+    }.toMutableList()
 }
 
 fun List<MatrixPoint>.isInsideOtherPolygon(other: List<MatrixPoint>): PolygonState {
@@ -166,8 +166,8 @@ fun List<MatrixPoint>.isInsideOtherPolygon(other: List<MatrixPoint>): PolygonSta
     return firstPointState
 }
 
-fun MutableList<List<MatrixPoint>>.separateInsidePolygons(): PolygonSeparator {
-    val separatingPolygons = PolygonSeparator()
+fun MutableList<MutableList<MatrixPoint>>.separateInsidePolygons(): MutableList<MutableList<MatrixPoint>> {
+    val insidePolygons = mutableListOf<MutableList<MatrixPoint>>()
 
     val iterator = this.listIterator()
     while (iterator.hasNext()) {
@@ -177,12 +177,13 @@ fun MutableList<List<MatrixPoint>>.separateInsidePolygons(): PolygonSeparator {
                 when(polygon.isInsideOtherPolygon(other)){
                     PolygonState.INSIDE -> {
                         iterator.remove()
-                        separatingPolygons.insidePolygons.add(polygon)
+                        insidePolygons.add(polygon)
                         return@breaking
                     }
                     PolygonState.INTERLOCKED -> {
+                        (polygon to other).resolveIntersection()
                         iterator.remove()
-                        separatingPolygons.interlockedPolygons.add(polygon to other)
+                        insidePolygons.add(polygon)
                         return@breaking
                     }
                     PolygonState.OUTSIDE ->{}
@@ -191,7 +192,7 @@ fun MutableList<List<MatrixPoint>>.separateInsidePolygons(): PolygonSeparator {
         }
     }
 
-    return separatingPolygons
+    return insidePolygons
 }
 
 fun List<List<MatrixPoint>>.makeLinearRing(minPoint: MapPoint): ArrayList<LinearRing> =

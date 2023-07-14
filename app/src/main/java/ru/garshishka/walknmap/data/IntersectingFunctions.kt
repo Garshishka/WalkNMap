@@ -1,7 +1,7 @@
 package ru.garshishka.walknmap.data
 
 //This functions separate two interlocked polygons
-fun Pair<List<MatrixPoint>,List<MatrixPoint>>.resolveIntersection() : Pair<List<MatrixPoint>,List<MatrixPoint>>{
+fun Pair<MutableList<MatrixPoint>, MutableList<MatrixPoint>>.resolveIntersection() {
     val insideP = this.first
     val outsideP = this.second
 
@@ -49,20 +49,22 @@ fun Pair<List<MatrixPoint>,List<MatrixPoint>>.resolveIntersection() : Pair<List<
     val intersectingIndexes =
         outsideP.getIntersectingIndexes(interlockedLines.first().horizontal, intersectingPoints)
 
+    //Inside polygon gets the inside part of interlocked "inside" polygon and inside points from
+    //outside polygon (those are between intersecting indexes
+    this.first.clear()
+    this.first.addAll(insidePoints + outsideP.subList(
+        intersectingIndexes.first + 1,
+        intersectingIndexes.second
+    ) + insidePoints.first())
+
     //Outside polygon gets outside points it has and the outside part of interlocked "inside" polygon
     val newOutsidePolygon =
         outsideP.subList(0, intersectingIndexes.first) + outsidePoints + outsideP.subList(
             intersectingIndexes.second,
             outsideP.size
-        ) + outsideP.first()
-    //Inside polygon gets the inside part of interlocked "inside" polygon and inside points from
-    //outside polygon (those are between intersecting indexes)
-    val newInsidePolygon = insidePoints + outsideP.subList(
-        intersectingIndexes.first + 1,
-        intersectingIndexes.second
-    ) + insidePoints.first()
-
-    return newInsidePolygon to newOutsidePolygon
+        ) //+ outsideP.first()
+    this.second.clear()
+    this.second.addAll(newOutsidePolygon)
 }
 
 //This function finds indexes of two points in the outside polygon

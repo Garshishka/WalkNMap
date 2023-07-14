@@ -1,9 +1,8 @@
 package ru.garshishka.walknmap
 
-import ru.garshishka.walknmap.data.isInsideOtherPolygon
 import ru.garshishka.walknmap.data.makePolygonPointsLists
 import ru.garshishka.walknmap.data.makeWallsMatrix
-import ru.garshishka.walknmap.data.resolveIntersection
+import ru.garshishka.walknmap.data.separateInsidePolygons
 
 fun test() {
     val matrix = arrayOf(
@@ -29,11 +28,15 @@ fun test() {
     val res = soop.makePolygonPointsLists(rows, cols)
     res.forEach { println(it) }
 
-    val outsideP = res[0]
-    val insideP = res[1]
+//    val outsideP = res[0]
+//    val insideP = res[1]
+//
+//    println(insideP.isInsideOtherPolygon(outsideP))
+//    (insideP to outsideP).resolveIntersection()
+//    println(outsideP)
+//    println(insideP)
 
-    println(insideP.isInsideOtherPolygon(outsideP))
-    val newPair = (insideP to outsideP).resolveIntersection()
-    println(newPair.second)
-    println(newPair.first)
+    val insidePolygons = res.separateInsidePolygons()
+    println(res)
+    println(insidePolygons)
 }
