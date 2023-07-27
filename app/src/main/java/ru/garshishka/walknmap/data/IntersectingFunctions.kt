@@ -9,6 +9,7 @@ fun Pair<MutableList<MatrixPoint>, MutableList<MatrixPoint>>.resolveIntersection
     var oldStatus = insideP[0].isInsideOtherPolygon(outsideP)
     val insidePointsSet = mutableSetOf<MatrixPoint>()
     val outsidePointsSet = mutableSetOf<MatrixPoint>()
+    var outsideToInsideIndex = 0
     //We divide the "inside" polygon points in inside and outside points
     //And also everytime it changes from inside to outside and vice versa we save
     //an intersecting line
@@ -22,13 +23,19 @@ fun Pair<MutableList<MatrixPoint>, MutableList<MatrixPoint>>.resolveIntersection
         }
         if (oldStatus != status) {
             interlockedLines.add(insideP[i].lineWith(insideP[i - 1]))
+            //we record at what point outside changes to inside
+            if (status == PolygonState.INSIDE) {
+                outsideToInsideIndex = i
+            }
         }
         oldStatus = status
     }
     //Points are put in a set first to avoid duplicating same last point
-    //But than we convert them to Lists to be able to put elememnt on special indexes
-    val outsidePoints = outsidePointsSet.toMutableList()
+    //But than we convert them to Lists to be able to put element on special indexes
     val insidePoints = insidePointsSet.toMutableList()
+    val outsidePoints =
+        if (outsideToInsideIndex == 0 || outsideToInsideIndex == outsidePointsSet.size) outsidePointsSet.toMutableList()
+        else outsidePointsSet.makeSortedList(outsideToInsideIndex)
 
     if (interlockedLines.size > 2) {
         //Maybe it can have more than two, but for now the scope is on two intersections
@@ -52,17 +59,19 @@ fun Pair<MutableList<MatrixPoint>, MutableList<MatrixPoint>>.resolveIntersection
     //Inside polygon gets the inside part of interlocked "inside" polygon and inside points from
     //outside polygon (those are between intersecting indexes
     this.first.clear()
-    this.first.addAll(insidePoints + outsideP.subList(
-        intersectingIndexes.first + 1,
-        intersectingIndexes.second
-    ) + insidePoints.first())
+    this.first.addAll(
+        insidePoints + outsideP.subList(
+            intersectingIndexes.first + 1,
+            intersectingIndexes.second
+        ) + insidePoints.first()
+    )
 
     //Outside polygon gets outside points it has and the outside part of interlocked "inside" polygon
     val newOutsidePolygon =
-        outsideP.subList(0, intersectingIndexes.first) + outsidePoints + outsideP.subList(
+        outsideP.subList(0, intersectingIndexes.first + 1) + outsidePoints + outsideP.subList(
             intersectingIndexes.second,
             outsideP.size
-        ) //+ outsideP.first()
+        )
     this.second.clear()
     this.second.addAll(newOutsidePolygon)
 }
@@ -162,3 +171,11 @@ fun List<MatrixPoint>.checkIfPointBetweenVertical(
                 intersectingPoint.lon
             ))
             )
+
+//we move all points after the inside break to be the first, and points before the break as the last
+fun Set<MatrixPoint>.makeSortedList(newFirstIndex: Int): MutableList<MatrixPoint> {
+    val listFromSet = this.toList()
+    return (listFromSet.subList(newFirstIndex, listFromSet.size - 1)
+            + listFromSet.subList(0, newFirstIndex))
+        .toMutableList()
+}

@@ -28,13 +28,11 @@ fun test() {
     val res = soop.makePolygonPointsLists(rows, cols)
     res.forEach { println(it) }
 
-//    val outsideP = res[0]
-//    val insideP = res[1]
-//
-//    println(insideP.isInsideOtherPolygon(outsideP))
-//    (insideP to outsideP).resolveIntersection()
-//    println(outsideP)
-//    println(insideP)
+    val kres = mutableListOf(res[1],res[0])
+
+    val insidePolygons2 = kres.separateInsidePolygons()
+    println(kres)
+    println(insidePolygons2)
 
     val insidePolygons = res.separateInsidePolygons()
     println(res)
