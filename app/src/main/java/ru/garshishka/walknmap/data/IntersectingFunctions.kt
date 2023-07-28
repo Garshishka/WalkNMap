@@ -175,7 +175,7 @@ fun List<MatrixPoint>.checkIfPointBetweenVertical(
 //we move all points after the inside break to be the first, and points before the break as the last
 fun Set<MatrixPoint>.makeSortedList(newFirstIndex: Int): MutableList<MatrixPoint> {
     val listFromSet = this.toList()
-    return (listFromSet.subList(newFirstIndex, listFromSet.size - 1)
+    return (listFromSet.subList(newFirstIndex, listFromSet.size)
             + listFromSet.subList(0, newFirstIndex))
         .toMutableList()
 }
