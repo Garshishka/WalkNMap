@@ -82,7 +82,7 @@ fun Array<IntArray>.makePolygonPointsLists(
             if ((this[r][c] and 1) == 1) {
                 var i = r + 1
                 var j = c
-                var cycle = mutableListOf(MatrixPoint(i,j))
+                var cycle = mutableListOf(MatrixPoint(i, j))
                 indexMatrix[i][j] = 0
                 //Using bitwise operator we check if element before this one has a vertical wall
                 //then we check element before and below this one
@@ -107,7 +107,7 @@ fun Array<IntArray>.makePolygonPointsLists(
                     //When we find walls we subtract 1 or 2 for horizontal or vertical walls
                     //the we "move along" the wall to the next point and check again
                     //when we can't find new walls this while ends
-                    cycle.add(MatrixPoint(i,j))
+                    cycle.add(MatrixPoint(i, j))
                     //Cycle stores "visited" points
                     val ix = indexMatrix[i][j]
                     if (ix >= 0) {
@@ -154,13 +154,28 @@ fun List<MatrixPoint>.removeConnectingPoints(): MutableList<MatrixPoint> {
 fun List<MatrixPoint>.isInsideOtherPolygon(other: List<MatrixPoint>): PolygonState {
     //Considering that way our system is setup all of the polygon points must be inside another one
     //So we only check first point against other polygons
-    val firstPointState = this.first().isInsideOtherPolygon(other)
-    for(i in 1..this.size-2) {
+    var firstPointState = this.first().isInsideOtherPolygon(other)
+    //two polygons that share one point can be sometimes designated as interlocked
+    //so for this we check if two points or more are not the same as first one
+    var oneTimeNotTheSame = false
+    for (i in 1..this.size - 2) {
         //But because of one way our point algorithm can fail we can get interlocked polygons
         //To capture them we have to check every other point of the polygon
         //if its different from the first point - they are interlocked
-        if (this[i].isInsideOtherPolygon(other) != firstPointState) {
-            return PolygonState.INTERLOCKED
+        //but only if this happens 2 times or more
+        val position = this[i].isInsideOtherPolygon(other)
+        if (position != PolygonState.CORNER && position != firstPointState) {
+            //if point was a corner point with other polygon it can get troublesome so we skip it
+            //and in case the first point was a corner - we make first not corner point the base
+            if(firstPointState == PolygonState.CORNER){
+                firstPointState = position
+            } else {
+                if (oneTimeNotTheSame) {
+                    return PolygonState.INTERLOCKED
+                } else {
+                    oneTimeNotTheSame = true
+                }
+            }
         }
     }
     return firstPointState
@@ -174,7 +189,7 @@ fun MutableList<MutableList<MatrixPoint>>.separateInsidePolygons(): MutableList<
         val polygon = iterator.next()
         run breaking@{
             this.filterNot { it == polygon }.forEach { other ->
-                when(polygon.isInsideOtherPolygon(other)){
+                when (polygon.isInsideOtherPolygon(other)) {
                     PolygonState.INSIDE -> {
                         iterator.remove()
                         insidePolygons.add(polygon)
@@ -186,12 +201,11 @@ fun MutableList<MutableList<MatrixPoint>>.separateInsidePolygons(): MutableList<
                         insidePolygons.add(polygon)
                         return@breaking
                     }
-                    PolygonState.OUTSIDE ->{}
+                    else -> {}
                 }
             }
         }
     }
-
     return insidePolygons
 }
 

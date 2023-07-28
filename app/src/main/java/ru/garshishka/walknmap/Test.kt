@@ -28,11 +28,11 @@ fun test() {
     val res = soop.makePolygonPointsLists(rows, cols)
     res.forEach { println(it) }
 
-    val kres = mutableListOf(res[1],res[0])
-
-    val insidePolygons2 = kres.separateInsidePolygons()
-    println(kres)
-    println(insidePolygons2)
+//    val kres = mutableListOf(res[1],res[0])
+//
+//    val insidePolygons2 = kres.separateInsidePolygons()
+//    println(kres)
+//    println(insidePolygons2)
 
     val insidePolygons = res.separateInsidePolygons()
     println(res)

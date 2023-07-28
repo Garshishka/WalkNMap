@@ -35,5 +35,7 @@ fun MatrixLine.findIntersectingPoint(otherPolygon: List<MatrixPoint>) : MatrixPo
             }
         }
     }
+    println(this)
+    println(otherPolygon)
     throw Exception("No intersecting point found!")
 }

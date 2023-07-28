@@ -11,6 +11,10 @@ data class MatrixPoint(
 }
 
 fun MatrixPoint.isInsideOtherPolygon(other: List<MatrixPoint>): PolygonState {
+    //if it has the same point - they touch by a corner, we will consider it an outside point
+    if(other.contains(this)){
+        return PolygonState.CORNER
+    }
     var isInside = false
     var j = other.size - 1
     //This algorithm is based on quick version of raytracing algorithm

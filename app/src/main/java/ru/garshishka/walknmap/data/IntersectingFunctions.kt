@@ -4,6 +4,9 @@ package ru.garshishka.walknmap.data
 fun Pair<MutableList<MatrixPoint>, MutableList<MatrixPoint>>.resolveIntersection() {
     val insideP = this.first
     val outsideP = this.second
+    println("INTERLOCKED")
+    println(outsideP)
+    println(insideP)
 
     val interlockedLines: MutableList<MatrixLine> = mutableListOf()
     var oldStatus = insideP[0].isInsideOtherPolygon(outsideP)
@@ -15,7 +18,7 @@ fun Pair<MutableList<MatrixPoint>, MutableList<MatrixPoint>>.resolveIntersection
     //an intersecting line
     for (i in 0 until insideP.size) {
         val status = insideP[i].isInsideOtherPolygon(outsideP)
-        println(status)
+        //println(status)
         if (status == PolygonState.INSIDE) {
             insidePointsSet.add(insideP[i])
         } else {

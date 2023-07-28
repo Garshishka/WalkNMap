@@ -276,13 +276,13 @@ class MainActivity : AppCompatActivity() {
                             .makePolygonPointsLists(rows, cols)
 
                         //ONLY DRAWING FIRST LAYER OF INSIDE POLYGONS FOR NOW
-//                        if (polygons.size > 1) {
-//                            drawInnerPolygons(
-//                                polygons.separateInsidePolygons(),
-//                                mapObjectCollection,
-//                                minPoint
-//                            )
-//                        }
+                        if (polygons.size > 1) {
+                            drawInnerPolygons(
+                                polygons.separateInsidePolygons(),
+                                mapObjectCollection,
+                                minPoint
+                            )
+                        }
                         val innerRings = polygons.makeLinearRing(minPoint)
 
                         redrawFog(innerRings)
@@ -317,17 +317,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun drawInnerPolygons(
-        insidePolygonsPoints: MutableList<MatrixPoint>,
+        insidePolygonsList: MutableList<MutableList<MatrixPoint>>,
         mapObjectCollection: MapObjectCollection,
         minPoint: MapPoint,
     ) {
-       /* if (insidePolygonsPoints.isNotEmpty()) {
+        if (insidePolygonsList.isNotEmpty()) {
             //TODO THIS PROBABLY NEEDS TO BE RECURSIVE
-            if (insidePolygonsPoints.size > 1) {
+            if (insidePolygonsList.size > 1) {
                 val insidePolygonsHoles =
-                    insidePolygonsPoints.separateInsidePolygons()
+                    insidePolygonsList.separateInsidePolygons()
             }
-            val insidePolygons = insidePolygonsPoints.makeLinearRing(minPoint)
+            val insidePolygons = insidePolygonsList.makeLinearRing(minPoint)
                 .map { makeInsidePolygon(it) }
 
             //we just clear all map objects and add all polygons back
@@ -337,7 +337,7 @@ class MainActivity : AppCompatActivity() {
             }
         } else {
             mapObjectCollection.clear()
-        }*/
+        }
     }
 
     private fun traverseMapObjectsToRemove(point: Point) {
